@@ -11,8 +11,9 @@
 int main () {
     using namespace am7x01;
 
+    //Scale scale(PROJECTOR_WIDTH, PROJECTOR_HEIGHT);
     Projector proj;
-    ScreenshotXShm scr(&proj);
+    ScreenshotXShm scr;
 
     proj.assign(&scr);
 

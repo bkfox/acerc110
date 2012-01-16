@@ -9,14 +9,19 @@
 namespace am7x01 {
 
     struct ScreenshotXShm : IScreenshot {
-            ScreenshotXShm (Projector*);
+            // window, panning width and height
+            // if panning < 0, set it at the projector capabilities
+            ScreenshotXShm (uint32_t = 0, int = -1, int = -1);
             ~ScreenshotXShm ();
 
-            virtual unsigned char * update ();
+            virtual Image update ();
 
         private:
             Display *display;
-            XImage *image;
+            XImage  *xImage;
+            Image    image;
+            uint32_t win;
+
             XShmSegmentInfo shm;
     };
 }

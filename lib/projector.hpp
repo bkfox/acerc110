@@ -2,6 +2,7 @@
 #define     PROJECTOR_HPP
 
 #include "screenshot.hpp"
+#include "transform.hpp"
 
 extern "C" {
     #include <libusb-1.0/libusb.h>
@@ -9,25 +10,23 @@ extern "C" {
     #include <jerror.h>
 }
 
-#include <iostream>
+
 namespace am7x01 {
 
+    #define     PROJECTOR_WIDTH     800
+    #define     PROJECTOR_HEIGHT    480
+
     /*
-     *  For pointers, the rule is: allocator frees his allocation
-     *
+     *  For pointers, the rule is: allocator frees his allocations
      */
     struct Projector {
-            bool scale;
-            uint32_t window;
-            int  width, height, bpp, bpl, resolution;
-            J_COLOR_SPACE color;
+            Transformer *transformer;
 
             /*  For the whole screen set width and height OR window to 0
              *  if scale = true, height and width will be the dimension to be scaled to
              *  otherwise, it is the size of the source
              */
-            Projector (const Power power = HIGH, const bool scale = false,
-                       const int width = 800, const int height = 480, const uint32_t window = 0);
+            Projector (const Power power = HIGH, Transformer* t = NULL);
 
             ~Projector ();
 
@@ -37,12 +36,10 @@ namespace am7x01 {
             /*  Projector doesn't free IScreenshot after use */
             void assign (IScreenshot *);
 
-            /* ! bytes per pixel */
-            void setBpp (int, J_COLOR_SPACE = JCS_RGB);
-
         private:
             unsigned char* buffer;
-            uint64_t       bufferSize;
+            uint64_t       bufferSize,
+                           compressedSize;
 
             libusb_device_handle *dev;
             IScreenshot *shooter;
@@ -54,7 +51,7 @@ namespace am7x01 {
             /*  The function suppose that src has been allocated following (width * height * bpp);
              *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
              */
-            void compress (unsigned char *src);
+            void compress (const Image&);
     };
 
 }

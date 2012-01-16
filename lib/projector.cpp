@@ -8,14 +8,10 @@ namespace am7x01 {
 
     #define BUFFER_SIZE     AM7X01_MAX_SIZE*2
 
-    Projector::Projector (const Power power, const bool Scale, const int Width,
-        const int Height, const uint32_t Window):
-        scale(Scale), window(Window),
-        width(Width), height(Height), resolution(Width*Height),
+    Projector::Projector (const Power power, Transformer *t):
+        transformer(t),
         buffer(0), bufferSize(0), dev(0), shooter(0),
         iHeader(htole32(IMAGE), sizeof(imageHeader), 0, 0x3e, 0x10) {
-
-        setBpp(3);
 
         /*  We need to alloc buffer at first, otherwise looks like there is a
          *  memory leak in libjpeg-turbo with jpeg_dest_mem
@@ -35,8 +31,8 @@ namespace am7x01 {
 
         // header
         iHeader.sub.image.format = htole32(0x01);
-        iHeader.sub.image.width =  htole32(width);
-        iHeader.sub.image.height = htole32(height);
+        iHeader.sub.image.width =  htole32(PROJECTOR_WIDTH);
+        iHeader.sub.image.height = htole32(PROJECTOR_HEIGHT);
 
         // init device
         header h(INIT);
@@ -59,16 +55,10 @@ namespace am7x01 {
 
     void Projector::assign (IScreenshot *s) {
         if(shooter)
-            throw runtime_error("A IScreenshot interface has been yet assigned");
+            shooter->parent = NULL;
 
         shooter = s;
-    }
-
-
-    void Projector::setBpp (int b, J_COLOR_SPACE c) {
-        bpp = b;
-        color = c;
-        bpl = width * bpp;
+        shooter->parent = this;
     }
 
 
@@ -92,46 +82,52 @@ namespace am7x01 {
 
 
     void Projector::update () {
-        unsigned char *data;
+        Image img = shooter->update();
 
-        data = shooter->update();
-        compress(data);
+        if(transformer)
+            img = transformer->transform(img);
 
-        iHeader.sub.image.size = htole32(bufferSize);
-        if(bufferSize > AM7X01_MAX_SIZE)
+        compress(img);
+
+        iHeader.sub.image.size = htole32(compressedSize);
+        if(compressedSize > AM7X01_MAX_SIZE)
             throw runtime_error("JPEG file size is too big");
 
         send(&iHeader, sizeof(iHeader));
-        send(buffer, bufferSize);
+        send(buffer, compressedSize);
     }
 
 
-    void Projector::compress (unsigned char *src) {
+    void Projector::compress (const Image& src ) {
         struct jpeg_compress_struct cinfo;
         struct jpeg_error_mgr jerr;
 
         cinfo.err = jpeg_std_error(&jerr);
         jpeg_create_compress(&cinfo);
 
-        cinfo.image_width = width;
-        cinfo.image_height = height;
-        cinfo.input_components = bpp;
-        cinfo.in_color_space = color;
+        cinfo.image_width = src.width;
+        cinfo.image_height = src.height;
+        cinfo.input_components = src.channels;
+        cinfo.in_color_space = src.color;
 
-        bufferSize = BUFFER_SIZE;
-        jpeg_mem_dest(&cinfo, &buffer, &bufferSize);
+        compressedSize = bufferSize;
+        jpeg_mem_dest(&cinfo, &buffer, &compressedSize);
 
         jpeg_set_defaults(&cinfo);
         jpeg_start_compress(&cinfo, true);
 
-        int n = height;
+        int n = src.height;
+        unsigned char *c = src.data;
         while(n--) {
-            jpeg_write_scanlines(&cinfo, &src, 1);
-            src += bpl;
+            jpeg_write_scanlines(&cinfo, &c, 1);
+            c += src.bpl;
         }
 
         jpeg_finish_compress(&cinfo);
         jpeg_destroy_compress(&cinfo);
+
+        if(compressedSize > bufferSize)
+            bufferSize = compressedSize;
     }
 
 }

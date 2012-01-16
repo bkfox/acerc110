@@ -3,16 +3,30 @@
 
 #include "am7xxx.hpp"
 
-#include <string>
+extern "C" {
+    #include <libusb-1.0/libusb.h>
+    #include <stdio.h>
+    #include <jpeglib.h>
+}
 
 namespace am7x01 {
     struct Projector;   // projector.hpp
 
-    struct IScreenshot {
-        IScreenshot() {};
-        IScreenshot(Projector *p) : parent(p) {};
-        virtual unsigned char * update () = 0;
 
+    struct Image {
+        uint32_t width;
+        uint32_t height;
+        char     channels;
+        uint32_t bpl;
+        J_COLOR_SPACE color;
+
+        uint64_t size;
+        unsigned char *data;
+    };
+
+
+    struct IScreenshot {
+        virtual Image update () = 0;
         Projector *parent;
     };
 }

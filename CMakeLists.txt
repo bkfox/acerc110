@@ -8,6 +8,7 @@ FIND_PACKAGE(X11)
 SET(CORE_CPPFILES
     lib/projector.cpp
     lib/screenshotXShm.cpp
+    lib/transform.cpp
 )
 
 SET(CORE_LIBS ${LIBUSB_LIBRARIES} ${JPEG_LIBRARIES} ${X11_LIBRARIES})

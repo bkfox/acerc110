@@ -14,10 +14,7 @@ extern "C" {
 namespace am7x01 {
     using namespace std;
 
-    ScreenshotXShm::ScreenshotXShm (Projector *Parent) :
-        display(NULL) {
-        parent = Parent;
-
+    ScreenshotXShm::ScreenshotXShm (uint32_t window, int panW, int panH) {
         display = XOpenDisplay(0);
         if(!display)
             throw runtime_error("XOpenDisplay(0) failed");
@@ -25,27 +22,45 @@ namespace am7x01 {
         if (!XShmQueryExtension(display))
             throw runtime_error("XShmExtension is not available");
 
-        if(!parent->window)
-            parent->window = RootWindow(display, DefaultScreen(display));
-        //for the moment, now way to scale
-        /* if(!parent->width)
-            parent->width = DisplayWidth(display, DefaultScreen(display));
-        if(!parent->height)
-            parent->height = DisplayHeight(display, DefaultScreen(display)); */
+        /* Configurations */
+        if(!window)
+            win = RootWindow(display, DefaultScreen(display));
+        else
+            win = window;
 
+        if(!panW)
+            panW = DisplayWidth(display, DefaultScreen(display));
+        else if(panW < 0)
+            panW = PROJECTOR_WIDTH;
 
-        image = XShmCreateImage(display, DefaultVisual(display, 0), 32, ZPixmap, NULL,
-                    &shm, parent->width, parent->height);
-        parent->setBpp(image->bits_per_pixel / 8, JCS_EXT_BGRX);
+        if(!panH)
+            panH = DisplayHeight(display, DefaultScreen(display));
+        else if(panH < 0)
+            panH = PROJECTOR_HEIGHT;
 
-        if(!image)
-            throw runtime_error("XShmCreateImage() failed");
+        /* Init XImage */
+        printf("%d %d \n", panW, panH);
+        xImage = XShmCreateImage(display, DefaultVisual(display, 0), 32, ZPixmap, NULL,
+                    &shm, panW, panH);
 
-        shm.shmid = shmget(IPC_PRIVATE, image->bytes_per_line * image->height, IPC_CREAT | 0777);
+        if(!xImage)
+            throw runtime_error("XShmCreatexImage() failed");
+
+        /* Init image struct */
+        image.width = xImage->width;
+        image.height = xImage->height;
+        image.bpl = xImage->bytes_per_line;
+        image.channels = 4;
+        image.color = JCS_EXT_BGRX;
+        image.size = image.bpl * image.height;
+
+        /* Shared memory */
+        shm.shmid = shmget(IPC_PRIVATE, xImage->bytes_per_line * xImage->height, IPC_CREAT | 0777);
         if(shm.shmid < 0)
             throw runtime_error("shmget() failed");
 
-        shm.shmaddr = image->data = (char *) shmat(shm.shmid, 0, 0);
+        shm.shmaddr = xImage->data = (char *) shmat(shm.shmid, 0, 0);
+        image.data = (unsigned char *) xImage->data;
         if (shm.shmaddr == (char *) -1)
             throw runtime_error("shmat() failed");
 
@@ -58,16 +73,16 @@ namespace am7x01 {
         XShmDetach(display, &shm);
         shmdt(shm.shmaddr);
 
-        if(image)
-            XDestroyImage(image);
+        if(xImage)
+            XDestroyImage(xImage);
         if(display)
             XCloseDisplay(display);
     }
 
 
-    unsigned char* ScreenshotXShm::update () {
-        XShmGetImage(display, parent->window, image, 0, 0, AllPlanes);
-        return (unsigned char*) image->data;
+    Image ScreenshotXShm::update () {
+        XShmGetImage(display, win, xImage, 0, 0, AllPlanes);
+        return image;
     }
 }
 
