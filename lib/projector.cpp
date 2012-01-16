@@ -21,6 +21,7 @@ namespace am7x01 {
         const int Height, const uint32_t Window):
         scale(Scale), window(Window),
         width(Width), height(Height), bpp(3), bpl(Width*bpp), size(bpl*Height),
+        resolution(Width*Height),
         dev(0), shooter(0),
         iHeader(htole32(IMAGE), sizeof(imageHeader), 0, 0x3e, 0x10) {
 
@@ -128,21 +129,21 @@ namespace am7x01 {
         PixelPacket *pixel = image.getPixels(0, 0, width, height);
 
         unsigned char *c = src;
-        int y, x;
+        int n = resolution;
+        uint32_t v = 0;
 
-        int calculated_offset = 0, offset = 0;
-        unsigned int v = 0;
-        for (int y = 0; y < height; y++) {
-            calculated_offset = offset;
-            offset += bpl;
-            for (int x = 0; x < width; x++) {
-                calculated_offset += bpp;
-                v = *((uint32_t *) (src + calculated_offset));
-                pixel->red = (v >> 8) & 0xffff;
-                pixel->green = (v) & 0xffff;
-                pixel->blue = (v << 8) & 0xffff;
-                pixel++;
-            }
+        /*
+         *  At this point, we suppose that the src has the dimension [width,height]
+         *  (then same resolution), and that the image is encoded as RGB(A)
+         */
+        while(n--) {
+            c += bpp;
+            v = *((uint32_t*) c);
+
+            pixel->red = (v >> 8) & 0xffff;
+            pixel->green = (v) & 0xffff;
+            pixel->blue = (v << 8) & 0xffff;
+            pixel++;
         }
 
         image.syncPixels();

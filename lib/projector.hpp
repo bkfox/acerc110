@@ -18,7 +18,7 @@ namespace am7x01 {
     struct Projector {
             bool scale;
             uint32_t window;
-            int  width, height, bpp, bpl, size;
+            int  width, height, bpp, bpl, size, resolution;
 
             /*  For the whole screen set width and height OR window to 0
              *  if scale = true, height and width will be the dimension to be scaled to
