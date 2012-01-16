@@ -17,6 +17,7 @@ namespace am7x01 {
 
         setBpp(3);
 
+        // usb
         libusb_init(NULL);
 
         dev = libusb_open_device_with_vid_pid(NULL, AM7X01_VENDOR_ID, AM7X01_PRODUCT_ID);
@@ -27,6 +28,7 @@ namespace am7x01 {
         libusb_set_configuration(dev, 1);
         libusb_claim_interface(dev, 0);
 
+        // header
         iHeader.sub.image.format = htole32(0x01);
         iHeader.sub.image.width =  htole32(width);
         iHeader.sub.image.height = htole32(height);
@@ -44,6 +46,9 @@ namespace am7x01 {
             setPower(OFF);      //first, shutdown the projector
             libusb_close(dev);  //then close the device
         }
+
+        if(buffer)
+            delete[] buffer;
     }
 
 
