@@ -103,15 +103,12 @@ namespace am7x01 {
 
 
     void Projector::setPower (const Power power) {
-        header data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
-
-        data.sub.power.low = power & LOW;
-        data.sub.power.mid = power & MID;
-        data.sub.power.high = power & HIGH;
+        static header data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
 
         data.sub.power.low = 0;
-        data.sub.power.high = 1;
-        data.sub.power.mid = 1;
+        data.sub.power.mid = (power & (LOW | HIGH)) ? 1 : 0;
+        data.sub.power.high = (power & (MID | HIGH)) ? 1 : 0;
+
         send(&data, sizeof(data));
     }
 
