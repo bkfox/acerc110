@@ -17,6 +17,11 @@ namespace am7x01 {
 
         setBpp(3);
 
+        /*  We need to alloc buffer at first, otherwise looks like there is a
+         *  memory leak in libjpeg-turbo with jpeg_dest_mem
+         */
+        buffer = new unsigned char [BUFFER_SIZE];
+
         // usb
         libusb_init(NULL);
 
@@ -67,21 +72,6 @@ namespace am7x01 {
     }
 
 
-    void Projector::update () {
-        unsigned char *data;
-
-        data = shooter->update();
-        compress(data);
-
-        iHeader.sub.image.size = htole32(bufferSize);
-        if(bufferSize > AM7X01_MAX_SIZE)
-            throw runtime_error("JPEG file size is too big");
-
-        send(&iHeader, sizeof(iHeader));
-        send(buffer, bufferSize);
-    }
-
-
     void Projector::setPower (const Power power) {
         static header data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
 
@@ -101,6 +91,21 @@ namespace am7x01 {
     }
 
 
+    void Projector::update () {
+        unsigned char *data;
+
+        data = shooter->update();
+        compress(data);
+
+        iHeader.sub.image.size = htole32(bufferSize);
+        if(bufferSize > AM7X01_MAX_SIZE)
+            throw runtime_error("JPEG file size is too big");
+
+        send(&iHeader, sizeof(iHeader));
+        send(buffer, bufferSize);
+    }
+
+
     void Projector::compress (unsigned char *src) {
         struct jpeg_compress_struct cinfo;
         struct jpeg_error_mgr jerr;
@@ -113,6 +118,7 @@ namespace am7x01 {
         cinfo.input_components = bpp;
         cinfo.in_color_space = color;
 
+        bufferSize = BUFFER_SIZE;
         jpeg_mem_dest(&cinfo, &buffer, &bufferSize);
 
         jpeg_set_defaults(&cinfo);
