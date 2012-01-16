@@ -3,12 +3,13 @@
 
 #include "screenshot.hpp"
 
-#include <Magick++.h>
-
 extern "C" {
     #include <libusb-1.0/libusb.h>
+    #include <jpeglib.h>
+    #include <jerror.h>
 }
 
+#include <iostream>
 namespace am7x01 {
 
     /*
@@ -18,7 +19,8 @@ namespace am7x01 {
     struct Projector {
             bool scale;
             uint32_t window;
-            int  width, height, bpp, bpl, size, resolution;
+            int  width, height, bpp, bpl, resolution;
+            J_COLOR_SPACE color;
 
             /*  For the whole screen set width and height OR window to 0
              *  if scale = true, height and width will be the dimension to be scaled to
@@ -35,14 +37,17 @@ namespace am7x01 {
             /*  Projector doesn't free IScreenshot after use */
             void assign (IScreenshot *);
 
+            /* ! bytes per pixel */
+            void setBpp (int, J_COLOR_SPACE = JCS_RGB);
+
         private:
+            unsigned char* buffer;
+            uint64_t       bufferSize;
+
             libusb_device_handle *dev;
             IScreenshot *shooter;
 
             header iHeader;
-
-            Magick::Image       image;
-            Magick::Blob        blob;
 
             void send(const void *buffer, const unsigned int len);
 

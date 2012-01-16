@@ -3,11 +3,12 @@
 
 #include <stdexcept>
 
-#include <iostream>
-
 extern "C" {
     #include <sys/shm.h>
     #include <X11/Xutil.h>
+
+    #include <jpeglib.h>
+    #include <jerror.h>
 }
 
 namespace am7x01 {
@@ -35,8 +36,7 @@ namespace am7x01 {
 
         image = XShmCreateImage(display, DefaultVisual(display, 0), 32, ZPixmap, NULL,
                     &shm, parent->width, parent->height);
-        parent->bpl = image->bytes_per_line;
-        parent->bpp = image->bits_per_pixel / 8;
+        parent->setBpp(image->bits_per_pixel / 8, JCS_EXT_BGRX);
 
         if(!image)
             throw runtime_error("XShmCreateImage() failed");
