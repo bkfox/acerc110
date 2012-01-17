@@ -14,7 +14,7 @@ extern "C" {
 namespace am7x01 {
     using namespace std;
 
-    ScreenshotXShm::ScreenshotXShm (uint32_t window, int panW, int panH) {
+    ScreenshotXShm::ScreenshotXShm (int panW, int panH, uint32_t window) {
         display = XOpenDisplay(0);
         if(!display)
             throw runtime_error("XOpenDisplay(0) failed");
@@ -23,10 +23,10 @@ namespace am7x01 {
             throw runtime_error("XShmExtension is not available");
 
         /* Configurations */
-        if(!window)
-            win = RootWindow(display, DefaultScreen(display));
-        else
-            win = window;
+        if(window)
+            throw runtime_error("Not supported for the moment");
+
+        win = RootWindow(display, DefaultScreen(display));
 
         if(!panW)
             panW = DisplayWidth(display, DefaultScreen(display));

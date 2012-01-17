@@ -13,6 +13,14 @@ namespace am7x01 {
     struct Projector;   // projector.hpp
 
 
+    struct Pixel {
+        unsigned char r, g, b;
+    };
+
+    struct PixelA {
+        unsigned char r, g, b, a;
+    };
+
     struct Image {
         uint32_t width;
         uint32_t height;

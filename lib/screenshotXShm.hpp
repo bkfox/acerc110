@@ -9,9 +9,10 @@
 namespace am7x01 {
 
     struct ScreenshotXShm : IScreenshot {
-            // window, panning width and height
+            // panning width and height, window
             // if panning < 0, set it at the projector capabilities
-            ScreenshotXShm (uint32_t = 0, int = -1, int = -1);
+            // if panning = 0, fullcreen
+            ScreenshotXShm (int = -1, int = -1, uint32_t = 0);
             ~ScreenshotXShm ();
 
             virtual Image update ();

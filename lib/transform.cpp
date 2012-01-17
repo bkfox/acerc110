@@ -38,21 +38,25 @@ namespace am7x01 {
         if(src.width <= outW || src.height <= outH)
             return transformer_next(src);
 
-        float   dx = src.width / outW,
-                dy = src.height / outH * src.bpl;
+        double dx = (double) src.width / outW,
+               dy = (double) src.height / outH,
+               co;
 
-        int offset = 0,
-            y = outH, x,
+        int y = outH, x,
             v, line;
 
+        unsigned char * offset = buffer;
+
         for(int y = 0; y < outH; y++) {
-            line = y * dy;
+            co = 0;
+            line = (int)((double)dy * y) * src.bpl;
             for(int x = 0; x < outW; x++) {
-                v = line + (float)(dx * x);
-                buffer[offset] = src.data[v];
-                buffer[offset+1] = src.data[v+1];
-                buffer[offset+2] = src.data[v+2];
+                v = line + (int) ((double)dx * x) * src.channels;
+                *offset = src.data[v];
+                *(offset+1) = src.data[v+1];
+                *(offset+2) = src.data[v+2];
                 offset+=src.channels;
+                co += dx;
             }
         }
 
@@ -61,6 +65,7 @@ namespace am7x01 {
         image.height = outH;
         image.bpl = outW * image.channels;
         image.size = outH * image.bpl;
+        image.data = buffer;
         return image;
     }
 
