@@ -6,17 +6,12 @@
 namespace am7x01 {
     using namespace std;
 
-    #define BUFFER_SIZE     AM7X01_MAX_SIZE*2
+    #define BUFFER_SIZE     AM7X01_MAX_SIZE*5
 
     Projector::Projector (const Power power, Transformer *t):
         transformer(t),
         buffer(0), bufferSize(0), dev(0), shooter(0),
         iHeader(htole32(IMAGE), sizeof(imageHeader), 0, 0x3e, 0x10) {
-
-        /*  We need to alloc buffer at first, otherwise looks like there is a
-         *  memory leak in libjpeg-turbo with jpeg_dest_mem
-         */
-        buffer = new unsigned char [BUFFER_SIZE];
 
         // usb
         libusb_init(NULL);
@@ -110,8 +105,9 @@ namespace am7x01 {
         cinfo.input_components = src.channels;
         cinfo.in_color_space = src.color;
 
+        unsigned char *b = buffer;
         compressedSize = bufferSize;
-        jpeg_mem_dest(&cinfo, &buffer, &compressedSize);
+        jpeg_mem_dest(&cinfo, &b, &compressedSize);
 
         jpeg_set_defaults(&cinfo);
         jpeg_start_compress(&cinfo, true);
@@ -125,6 +121,11 @@ namespace am7x01 {
 
         jpeg_finish_compress(&cinfo);
         jpeg_destroy_compress(&cinfo);
+
+        if(b != buffer) {
+            delete[] buffer;
+            buffer = b;
+        }
 
         if(compressedSize > bufferSize)
             bufferSize = compressedSize;
