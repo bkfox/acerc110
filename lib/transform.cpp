@@ -30,33 +30,29 @@ namespace am7x01 {
     }
 
 
+    /* Note:
+     *      big → little : works correctly
+     *      little → big : not tested yet
+     */
     Image Scale::transform (const Image& src) {
-        //dest[dx,dy] = src[dx*src_width/dest_width + dy*src_height/dest_height * bpl]
-        //
-        //  d[x,y] = [x + y * bpl]
-        //
-        if(src.width <= outW || src.height <= outH)
+        if(src.width == outW || src.height == outH)
             return transformer_next(src);
 
         double dx = (double) src.width / outW,
-               dy = (double) src.height / outH,
-               co;
+               dy = (double) src.height / outH;
+        int y, x, v, line;
 
-        int y = outH, x,
-            v, line;
+        unsigned char *offset = buffer;
 
-        unsigned char * offset = buffer;
-
-        for(int y = 0; y < outH; y++) {
-            co = 0;
+        for(y = 0; y < outH; y++) {
             line = (int)((double)dy * y) * src.bpl;
-            for(int x = 0; x < outW; x++) {
+            for(x = 0; x < outW; x++) {
+                //seems the second part is optimized by the compilator
                 v = line + (int) ((double)dx * x) * src.channels;
                 *offset = src.data[v];
                 *(offset+1) = src.data[v+1];
                 *(offset+2) = src.data[v+2];
                 offset+=src.channels;
-                co += dx;
             }
         }
 
