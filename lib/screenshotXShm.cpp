@@ -24,16 +24,20 @@ namespace am7x01 {
 
         /* Configurations */
         if(window)
-            throw runtime_error("Not supported for the moment");
+            win = window;
+        else
+            win = RootWindow(display, DefaultScreen(display));
 
-        win = RootWindow(display, DefaultScreen(display));
+        XWindowAttributes winAttrs;
+        if(!XGetWindowAttributes(display, win, &winAttrs))
+            throw runtime_error("Cannot retreive information about the window");
 
-        if(!panW)
-            panW = DisplayWidth(display, DefaultScreen(display));
+        if(!panW || panW > winAttrs.width)
+            panW = winAttrs.width;
         else if(panW < 0)
             panW = PROJECTOR_WIDTH;
 
-        if(!panH)
+        if(!panH || panH > winAttrs.height)
             panH = DisplayHeight(display, DefaultScreen(display));
         else if(panH < 0)
             panH = PROJECTOR_HEIGHT;
