@@ -41,7 +41,7 @@ namespace am7x01 {
         uint32_t high;
     };
 
-    struct header {
+    struct dataHeader {
         uint32_t    type;
         uint8_t     unknown0;
         uint8_t     len;
@@ -53,7 +53,7 @@ namespace am7x01 {
             powerHeader power;
         } sub;
 
-        header (uint32_t t, uint8_t l = 0, uint8_t u0 = 0, uint8_t u1 = 0, uint8_t u2 = 0) :
+        dataHeader (uint32_t t, uint8_t l = 0, uint8_t u0 = 0, uint8_t u1 = 0, uint8_t u2 = 0) :
             type(t), unknown0(u0), len(l), unknown1(u1), unknown2(u2) {
         }
     };

@@ -1,6 +1,9 @@
 #include "am7xxx.hpp"
 #include "projector.hpp"
 
+
+#include <iostream>
+
 #include <stdexcept>
 
 namespace am7x01 {
@@ -11,7 +14,7 @@ namespace am7x01 {
     Projector::Projector (const Power power, Transformer *t):
         transformer(t),
         buffer(0), bufferSize(0), dev(0), shooter(0),
-        iHeader(htole32(IMAGE), sizeof(imageHeader), 0, 0x3e, 0x10) {
+        header(htole32(IMAGE), sizeof(imageHeader), 0, 0x3e, 0x10) {
 
         // usb
         libusb_init(NULL);
@@ -25,12 +28,12 @@ namespace am7x01 {
         libusb_claim_interface(dev, 0);
 
         // header
-        iHeader.sub.image.format = htole32(0x01);
-        iHeader.sub.image.width =  htole32(PROJECTOR_WIDTH);
-        iHeader.sub.image.height = htole32(PROJECTOR_HEIGHT);
+        header.sub.image.format = htole32(0x01);
+        header.sub.image.width =  htole32(PROJECTOR_WIDTH);
+        header.sub.image.height = htole32(PROJECTOR_HEIGHT);
 
         // init device
-        header h(INIT);
+        dataHeader h(INIT);
         send(&h, sizeof(h));
 
         setPower(power);
@@ -58,7 +61,7 @@ namespace am7x01 {
 
 
     void Projector::setPower (const Power power) {
-        static header data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
+        static dataHeader data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
 
         data.sub.power.low = 0;
         data.sub.power.mid = (power & (LOW | HIGH)) ? 1 : 0;
@@ -76,20 +79,59 @@ namespace am7x01 {
     }
 
 
+
     void Projector::update () {
         Image img = shooter->update();
 
         if(transformer)
             img = transformer->transform(img);
-
+//#define YUV
+#ifndef YUV
         compress(img);
+#else
+        {
+            header.sub.image.size = htole32((double) (img.height * img.width * 12/8));
 
-        iHeader.sub.image.size = htole32(compressedSize);
+            if(header.sub.image.size > bufferSize) {
+                if(buffer)
+                    delete[] buffer;
+                buffer = new unsigned char[header.sub.image.size];
+                bufferSize = header.sub.image.size;
+                header.sub.image.format = htole32(0x02);
+            }
+
+            unsigned char *yPos = buffer,
+                          *uvPos = buffer + (img.width * img.height),
+                          *src = img.data;
+
+            for (int i = 0; i < img.height; i++)
+                for (int j = 0; j < img.width; j++) {
+                    #define B   *(src)
+                    #define G   *(src+1)
+                    #define R   *(src+2)
+
+                    *yPos = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
+
+                    yPos++;
+                    if(j%2==0 & i%2==0) {
+                        *uvPos =     ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
+                        *(uvPos+1) = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
+                        uvPos += 2;
+                    }
+                }
+        }
+
+#endif
+
+#ifndef YUV
+        header.sub.image.format = 0x01;
+        header.sub.image.size = htole32(compressedSize);
         if(compressedSize > AM7X01_MAX_SIZE)
             throw runtime_error("JPEG file size is too big");
+#endif
 
-        send(&iHeader, sizeof(iHeader));
-        send(buffer, compressedSize);
+        send(&header, sizeof(header));
+        send(buffer, header.sub.image.size);
     }
 
 

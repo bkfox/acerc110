@@ -44,7 +44,7 @@ namespace am7x01 {
             libusb_device_handle *dev;
             IScreenshot *shooter;
 
-            header iHeader;
+            dataHeader     header;
 
             void send(const void *buffer, const unsigned int len);
 
