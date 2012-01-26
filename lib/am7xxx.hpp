@@ -17,7 +17,7 @@ namespace am7x01 {
         OFF     = 0,
         LOW     = 1,
         MID     = 2,
-        HIGH    = 4,
+        HIGH    = 3,
     };
 
     enum PacketType {

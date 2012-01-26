@@ -38,8 +38,7 @@ namespace am7x01 {
 
         private:
             unsigned char* buffer;
-            uint64_t       bufferSize,
-                           compressedSize;
+            uint64_t       bufferSize;
 
             libusb_device_handle *dev;
             IScreenshot *shooter;
@@ -51,7 +50,7 @@ namespace am7x01 {
             /*  The function suppose that src has been allocated following (width * height * bpp);
              *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
              */
-            void compress (const Image&);
+            uint64_t compress (const Image&);
     };
 
 }

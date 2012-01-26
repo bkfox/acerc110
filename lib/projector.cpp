@@ -3,13 +3,12 @@
 
 
 #include <iostream>
+#include <time.h>
 
 #include <stdexcept>
 
 namespace am7x01 {
     using namespace std;
-
-    #define BUFFER_SIZE     AM7X01_MAX_SIZE*5
 
     Projector::Projector (const Power power, Transformer *t):
         transformer(t),
@@ -64,8 +63,8 @@ namespace am7x01 {
         static dataHeader data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
 
         data.sub.power.low = 0;
-        data.sub.power.mid = (power & (LOW | HIGH)) ? 1 : 0;
-        data.sub.power.high = (power & (MID | HIGH)) ? 1 : 0;
+        data.sub.power.mid = (power & LOW) ? 1 : 0;
+        data.sub.power.high = (power & MID) ? 1 : 0;
 
         send(&data, sizeof(data));
     }
@@ -85,10 +84,9 @@ namespace am7x01 {
 
         if(transformer)
             img = transformer->transform(img);
+
 //#define YUV
-#ifndef YUV
-        compress(img);
-#else
+#ifdef YUV
         {
             header.sub.image.size = htole32((double) (img.height * img.width * 12/8));
 
@@ -120,13 +118,10 @@ namespace am7x01 {
                     }
                 }
         }
-
-#endif
-
-#ifndef YUV
+#else
         header.sub.image.format = 0x01;
-        header.sub.image.size = htole32(compressedSize);
-        if(compressedSize > AM7X01_MAX_SIZE)
+        header.sub.image.size = htole32(compress(img));
+        if(header.sub.image.size > AM7X01_MAX_SIZE)
             throw runtime_error("JPEG file size is too big");
 #endif
 
@@ -135,7 +130,7 @@ namespace am7x01 {
     }
 
 
-    void Projector::compress (const Image& src ) {
+    uint64_t Projector::compress (const Image& src ) {
         struct jpeg_compress_struct cinfo;
         struct jpeg_error_mgr jerr;
 
@@ -148,8 +143,8 @@ namespace am7x01 {
         cinfo.in_color_space = src.color;
 
         unsigned char *b = buffer;
-        compressedSize = bufferSize;
-        jpeg_mem_dest(&cinfo, &b, &compressedSize);
+        uint64_t size = bufferSize;
+        jpeg_mem_dest(&cinfo, &b, &size);
 
         jpeg_set_defaults(&cinfo);
         jpeg_start_compress(&cinfo, true);
@@ -167,10 +162,9 @@ namespace am7x01 {
         if(b != buffer) {
             delete[] buffer;
             buffer = b;
+            bufferSize = size;
         }
-
-        if(compressedSize > bufferSize)
-            bufferSize = compressedSize;
+        return size;
     }
 
 }
