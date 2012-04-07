@@ -13,45 +13,45 @@ extern "C" {
 
 namespace am7x01 {
 
-    #define     PROJECTOR_WIDTH     800
-    #define     PROJECTOR_HEIGHT    480
+#define     PROJECTOR_WIDTH     800
+#define     PROJECTOR_HEIGHT    480
 
-    /*
-     *  For pointers, the rule is: allocator frees his allocations
-     */
-    struct Projector {
-            Transformer *transformer;
+/*
+ *  For pointers, the rule is: allocator frees his allocations
+ */
+struct Projector {
+        Transformer *transformer;
 
-            /*  For the whole screen set width and height OR window to 0
-             *  if scale = true, height and width will be the dimension to be scaled to
-             *  otherwise, it is the size of the source
-             */
-            Projector (const Power power = HIGH, Transformer* t = NULL);
+        /*  For the whole screen set width and height OR window to 0
+         *  if scale = true, height and width will be the dimension to be scaled to
+         *  otherwise, it is the size of the source
+         */
+        Projector (const Power power = HIGH, Transformer* t = NULL);
 
-            ~Projector ();
+        ~Projector ();
 
-            void update ();
-            void setPower (const Power);
+        void update ();
+        void setPower (const Power);
 
-            /*  Projector doesn't free IScreenshot after use */
-            void assign (IScreenshot *);
+        /*  Projector doesn't free IScreenshot after use */
+        void assign (IScreenshot *);
 
-        private:
-            unsigned char* buffer;
-            uint64_t       bufferSize;
+    private:
+        unsigned char* buffer;
+        uint64_t       bufferSize;
 
-            libusb_device_handle *dev;
-            IScreenshot *shooter;
+        libusb_device_handle *dev;
+        IScreenshot *shooter;
 
-            dataHeader     header;
+        dataHeader     header;
 
-            void send(const void *buffer, const unsigned int len);
+        void send(const void *buffer, const unsigned int len);
 
-            /*  The function suppose that src has been allocated following (width * height * bpp);
-             *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
-             */
-            uint64_t compress (const Image&);
-    };
+        /*  The function suppose that src has been allocated following (width * height * bpp);
+         *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
+         */
+        uint64_t compress (const Image&);
+};
 
 }
 

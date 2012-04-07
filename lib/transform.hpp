@@ -5,30 +5,31 @@
 
 namespace am7x01 {
 
-    #define transformer_next(x)   ((next) ? next->transform(x) : x)
+#define transformer_next(x)   ((next) ? next->transform(x) : x)
 
-    struct  Transformer {
-        Transformer();
-        void append(Transformer*);
+struct  Transformer {
+    Transformer();
+    void append(Transformer*);
 
-        virtual Image transform (const Image& src) = 0;
+    virtual Image transform (const Image& src) = 0;
 
-        Transformer *next;
-    };
+    Transformer *next;
+};
 
 
-    struct  Scale : Transformer {
-        ~Scale ();
+struct  Scale : Transformer {
+    ~Scale ();
 
-        Scale (uint32_t w, uint32_t h);
-        Image transform (const Image& src);
+    Scale (uint32_t w, uint32_t h);
+    Image transform (const Image& src);
 
-        private:
-            unsigned char  *buffer;
-            uint32_t        outW,
-                            outH;
-    };
-}
+    private:
+        unsigned char  *buffer;
+        uint32_t        outW,
+                        outH;
+};
+
+} //namespace
 
 #endif
 
