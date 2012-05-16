@@ -130,7 +130,7 @@ void Projector::update () {
 }
 
 
-uint64_t Projector::compress (const Image& src ) {
+long unsigned int Projector::compress (const Image& src ) {
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
 
@@ -143,7 +143,7 @@ uint64_t Projector::compress (const Image& src ) {
     cinfo.in_color_space = src.color;
 
     unsigned char *b = buffer;
-    uint64_t size = bufferSize;
+    long unsigned int size = bufferSize;
     jpeg_mem_dest(&cinfo, &b, &size);
 
     jpeg_set_defaults(&cinfo);

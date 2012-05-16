@@ -50,7 +50,7 @@ struct Projector {
         /*  The function suppose that src has been allocated following (width * height * bpp);
          *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
          */
-        uint64_t compress (const Image&);
+        long unsigned int compress (const Image&);
 };
 
 }
