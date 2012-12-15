@@ -68,11 +68,12 @@ int main (int argc, char ** argv) {
         while(1) {
             frame = N;
             start = clock();
-            while(frame--)
+            while(frame--) {
                 proj.update();
+                usleep(us);
+            }
             stop = clock() - start;
             cout << (N * CLOCKS_PER_SEC / (float)stop) << " fps\n";
-            usleep(us);
         }
     }
     else
