@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 #include <iostream>
-#define B std::cout << __LINE__ << " " << __FUNCTION__ << std::endl;
+//#define B std::cout << __LINE__ << " " << __FUNCTION__ << std::endl;
 
 extern "C" {
     #include <sys/shm.h>
@@ -15,9 +15,6 @@ extern "C" {
     #include <xcb/xproto.h>
     #include <xcb/xcb_image.h>
     #include <xcb/shm.h>
-
-//    #include <jpeglib.h>
-//    #include <jerror.h>
 }
 
 
