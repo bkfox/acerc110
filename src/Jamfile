@@ -1,0 +1,6 @@
+
+LOCATE_TARGET = build ;
+Main c110d : daemon.cpp ;
+LinkLibraries c110d : libc110 ;
+LINKLIBS on c110d = -ljpeg -lusb-1.0 -lxcb -lxcb-image -lxcb-shm -lboost_program_options ;
+
