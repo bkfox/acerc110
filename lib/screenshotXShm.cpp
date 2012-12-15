@@ -1,93 +1,179 @@
+#include "pimpl_.hpp"
 #include "screenshotXShm.hpp"
 #include "projector.hpp"
 
+#include <string>
 #include <stdexcept>
+
+#include <iostream>
+#define B std::cout << __LINE__ << " " << __FUNCTION__ << std::endl;
 
 extern "C" {
     #include <sys/shm.h>
-    #include <X11/Xutil.h>
 
-    #include <jpeglib.h>
-    #include <jerror.h>
+    #include <xcb/xcb.h>
+    #include <xcb/xproto.h>
+    #include <xcb/xcb_image.h>
+    #include <xcb/shm.h>
+
+//    #include <jpeglib.h>
+//    #include <jerror.h>
 }
+
 
 namespace am7x01 {
 using namespace std;
 
-ScreenshotXShm::ScreenshotXShm (int panW, int panH, uint32_t window) {
-    display = XOpenDisplay(0);
-    if(!display)
-        throw runtime_error("XOpenDisplay(0) failed");
 
-    if (!XShmQueryExtension(display))
-        throw runtime_error("XShmExtension is not available");
+struct ScreenshotXShm::impl {
+    xcb_connection_t*       c;
+    xcb_window_t            w;
+    xcb_image_t*            xi;
+    Image                   im;
+    xcb_shm_segment_info_t  shm;
+} ;
 
-    /* Configurations */
-    if(window)
-        win = window;
-    else
-        win = RootWindow(display, DefaultScreen(display));
 
-    XWindowAttributes winAttrs;
-    if(!XGetWindowAttributes(display, win, &winAttrs))
-        throw runtime_error("Cannot retreive information about the window");
+ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w) {
+    xcb_connection_t* c = 0;
+    xcb_screen_t* s = 0;
+    xcb_image_t* xi = 0;
+    xcb_get_geometry_reply_t* geomR = 0;
 
-    if(!panW || panW > winAttrs.width)
-        panW = winAttrs.width;
-    else if(panW < 0)
-        panW = PROJECTOR_WIDTH;
+    try {
+        int screenN;
+        const char* dn = getenv("DISPLAY");
+        if(!dn)
+            throw runtime_error("cannot get $DISPLAY. Is X started?");
 
-    if(!panH || panH > winAttrs.height)
-        panH = DisplayHeight(display, DefaultScreen(display));
-    else if(panH < 0)
-        panH = PROJECTOR_HEIGHT;
+        c = xcb_connect(dn, &screenN);
+        if(!c)
+            throw "cannot connect to X";
 
-    /* Init XImage */
-    printf("%d %d \n", panW, panH);
-    xImage = XShmCreateImage(display, DefaultVisual(display, 0), 32, ZPixmap, NULL,
-                &shm, panW, panH);
+        auto setup = xcb_get_setup(c);
+        //if(!w) {
+            auto it = xcb_setup_roots_iterator(setup);
+            for(; it.rem; --screenN, xcb_screen_next(&it))
+                if(!screenN) {
+                    s = it.data;
+                    break;
+                }
 
-    if(!xImage)
-        throw runtime_error("XShmCreatexImage() failed");
+            if(!s)
+                throw runtime_error("cannot get screen information");
+            w = s->root;
+        //}
+        pW = s->width_in_pixels;
+        pH = s->height_in_pixels;
 
-    /* Init image struct */
-    image.width = xImage->width;
-    image.height = xImage->height;
-    image.bpl = xImage->bytes_per_line;
-    image.channels = 4;
-    image.color = JCS_EXT_BGRX;
-    image.size = image.bpl * image.height;
-    //image.realBufferSize = image.size;
+        /*auto ck = xcb_get_geometry(c, w);
+        geomR = xcb_get_geometry_reply(c, ck, NULL);
 
-    /* Shared memory */
-    shm.shmid = shmget(IPC_PRIVATE, xImage->bytes_per_line * xImage->height, IPC_CREAT | 0777);
-    if(shm.shmid < 0)
-        throw runtime_error("shmget() failed");
+        if(!geomR)
+            throw runtime_error("cannot retrieve window information");
 
-    shm.shmaddr = xImage->data = (char *) shmat(shm.shmid, 0, 0);
-    image.data = (unsigned char *) xImage->data;
-    if (shm.shmaddr == (char *) -1)
-        throw runtime_error("shmat() failed");
+        // check panning values
+        if(!pW || pW > s->width_in_pixels)
+            pW = geomR->width;
+        else if(pW < 0)
+            pW = PROJECTOR_WIDTH;
 
-    shm.readOnly = False;
-    XShmAttach(display, &shm);
+        if(!pH || pH > s->height_in_pixels)
+            pH = geomR->height;
+        else if(pH < 0)
+            pH = PROJECTOR_HEIGHT;
+
+        free(geomR);
+        geomR = 0;*/
+
+
+
+        //cf http://svn.enlightenment.org/svn/e/tags/ecore-1.1.0/src/lib/ecore_x/xcb/ecore_xcb_image.c
+        // ximage
+        auto fmt = xcb_setup_pixmap_formats(setup);
+        auto fmtEnd = xcb_setup_pixmap_formats_length(setup) + fmt;
+        for(; fmt != fmtEnd && fmt->depth != 32; ++fmt);
+
+        xi = xcb_image_create(pW, pH, XCB_IMAGE_FORMAT_Z_PIXMAP,
+                fmt->scanline_pad, fmt->depth, fmt->bits_per_pixel,
+                setup->bitmap_format_scanline_unit,
+                XCB_IMAGE_ORDER_MSB_FIRST, // setup->image_byte_order,
+                XCB_IMAGE_ORDER_MSB_FIRST, // setup->bitmap_format_bit_order,
+                0, 0, 0);
+
+        // shm memory
+        m->shm.shmid = shmget(IPC_PRIVATE, xi->stride * xi->height, IPC_CREAT | 0666);
+        if(m->shm.shmid < 0)
+            throw runtime_error("shmget() failed");
+
+        m->shm.shmaddr = (unsigned char*) shmat(m->shm.shmid, 0, 0);
+        if(m->shm.shmaddr == (unsigned char*) -1)
+            throw runtime_error("shmat() failed");
+
+        m->shm.shmseg = xcb_generate_id(c);
+        xcb_shm_attach(c, m->shm.shmseg, m->shm.shmid, 0);
+
+        // image
+        Image im;
+        im.data = m->shm.shmaddr;
+        im.width = xi->width;
+        im.height = xi->height;
+        im.bpl = xi->stride;
+        im.channels = 4;
+        im.size = im.bpl * im.height;
+
+        // m
+        m->c = c;
+        m->w = w;
+        m->xi = xi;
+        m->im = im;
+    }
+    catch(...) {
+        if(c)
+            xcb_disconnect(c);
+        if(geomR)
+            free(geomR);
+        if(xi)
+            xcb_image_destroy(xi);
+        if(m->shm.shmaddr) {
+            shmdt(m->shm.shmaddr);
+            shmctl(m->shm.shmid, IPC_RMID, 0);
+        }
+
+        throw;
+    }
 }
 
 
 ScreenshotXShm::~ScreenshotXShm () {
-    XShmDetach(display, &shm);
-    shmdt(shm.shmaddr);
+    if(m->c && m->shm.shmaddr) {
+        xcb_shm_detach_checked(m->c, m->shm.shmseg);
+        shmdt(m->shm.shmaddr);
+        shmctl(m->shm.shmid, IPC_RMID, 0);
+    }
 
-    if(xImage)
-        XDestroyImage(xImage);
-    if(display)
-        XCloseDisplay(display);
+    if(m->xi)
+        xcb_image_destroy(m->xi);
+    if(m->c)
+        xcb_disconnect(m->c);
 }
 
 
 Image ScreenshotXShm::update () {
-    XShmGetImage(display, win, xImage, 0, 0, AllPlanes);
-    return image;
+    xcb_generic_error_t* e = NULL;
+
+    auto ck = xcb_shm_get_image(m->c, m->w, 0, 0, m->im.width, m->im.height, 0xFFFFFFFF,
+        m->xi->format, m->shm.shmseg, 0);
+    auto r = xcb_shm_get_image_reply(m->c, ck, &e);
+
+    if(e) {
+        cout << "ERROR type " << (int)e->response_type
+             << ", code " << (int) e->error_code
+             << ", sequence " << (int) e->sequence
+             << endl;
+    }
+
+    return m->im;
 }
 
 }

@@ -46,10 +46,6 @@ Image Scale::transform (const Image& src) {
     int table[outW];
     unsigned char *offset = buffer;
 
-    /*  Using a lookup table; Seems that caching the values in RAM
-     *  for next function calls cost more in access to value than
-     *  recompute all the data in stack
-     */
     for(x = 0; x < outW; x++)
         table[x] = (int) ((double)dx * x) * src.channels;
 

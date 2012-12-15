@@ -62,9 +62,13 @@ void Projector::assign (IScreenshot *s) {
 void Projector::setPower (const Power power) {
     static dataHeader data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
 
-    data.sub.power.low = 0;
+/*    data.sub.power.low = 0;
     data.sub.power.mid = (power & LOW) ? 1 : 0;
-    data.sub.power.high = (power & MID) ? 1 : 0;
+    data.sub.power.high = (power & MID) ? 1 : 0; */
+
+    data.sub.power.low = 1;
+    data.sub.power.mid = 0;
+    data.sub.power.high =  0;
 
     send(&data, sizeof(data));
 }
@@ -130,7 +134,7 @@ void Projector::update () {
 }
 
 
-long unsigned int Projector::compress (const Image& src ) {
+uint64_t Projector::compress (const Image& src ) {
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
 
@@ -140,10 +144,10 @@ long unsigned int Projector::compress (const Image& src ) {
     cinfo.image_width = src.width;
     cinfo.image_height = src.height;
     cinfo.input_components = src.channels;
-    cinfo.in_color_space = src.color;
+    cinfo.in_color_space = JCS_EXT_BGRX; //src.color;
 
     unsigned char *b = buffer;
-    long unsigned int size = bufferSize;
+    uint64_t size = bufferSize;
     jpeg_mem_dest(&cinfo, &b, &size);
 
     jpeg_set_defaults(&cinfo);
