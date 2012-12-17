@@ -9,8 +9,8 @@ There is also the missing FindLIBUSB module for cmake that is not especially
 included in most distribution. You have to copy it to /usr/share/cmake-2.8/Modules
 
 
-Also take a look there
-======================
+Also take a look there too
+==========================
 
 https://github.com/rettichschnidi/acerc11xdrv
 http://git.ao2.it/libam7xxx.git
