@@ -1,3 +1,19 @@
+/*
+Copyright (C) 2012 - Thomas Baquet (aka lordblackfox)
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include <iostream>
 #include <boost/program_options.hpp>
 
@@ -22,12 +38,14 @@ namespace po = boost::program_options;
 int main (int argc, char ** argv) {
     int panW{0}, panH{0}, power{3}, zoom{2};
     uint32_t wID{0}, framerate{0};
+    bool pickWindow{false};
 
     po::options_description desc("General options");
     desc.add_options()
         ("help", "help message")
         ("bench", "show fps")
         ("test", "show test picture")
+        ("pick", "select a window using mouse click")
         ("width", po::value<int>(&panW), "panning width (default: 0). If -1, use projector capabilities, 0 use the window/screen width")
         ("height", po::value<int>(&panH), "panning height (default: 0). If -1, use projector capabilities, 0 use the window/screen height")
         ("power", po::value<int>(&power), "projector power (between 1 to 4)")
@@ -65,7 +83,7 @@ int main (int argc, char ** argv) {
     // prepare main objects
     Scale scale(PROJECTOR_WIDTH, PROJECTOR_HEIGHT);
     Projector proj((Power)power, (Zoom)zoom, &scale);
-    ScreenshotXShm scr(panW, panH, wID);
+    ScreenshotXShm scr(panW, panH, wID, vm.count("pick"));
 
     // lets' go
     proj.assign(&scr);

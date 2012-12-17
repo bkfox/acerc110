@@ -1,7 +1,6 @@
 #ifndef NANOM_PIMPL
 #define NANOM_PIMPL
-/* Based on GotW #101
- */
+/* Based on GotW #101 */
 
 #include <memory>
 
