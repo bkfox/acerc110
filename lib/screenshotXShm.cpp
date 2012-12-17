@@ -6,7 +6,7 @@
 #include <stdexcept>
 
 #include <iostream>
-//#define B std::cout << __LINE__ << " " << __FUNCTION__ << std::endl;
+#define B std::cout << __LINE__ << " " << __FUNCTION__ << std::endl;
 
 extern "C" {
     #include <sys/shm.h>
@@ -15,6 +15,8 @@ extern "C" {
     #include <xcb/xproto.h>
     #include <xcb/xcb_image.h>
     #include <xcb/shm.h>
+
+    #include <X11/cursorfont.h>
 }
 
 
@@ -28,10 +30,59 @@ struct ScreenshotXShm::impl {
     xcb_image_t*            xi;
     Image                   im;
     xcb_shm_segment_info_t  shm;
+
+    uint32_t pick(uint32_t);
 } ;
 
 
-ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w) {
+uint32_t ScreenshotXShm::impl::pick(uint32_t root) {
+    cout << "Please click on a window to project it" << endl;
+
+    xcb_cursor_t cursor;
+    xcb_font_t   cursorFont;
+
+    cursorFont = xcb_generate_id(c);
+    xcb_open_font(c, cursorFont, 6, "cursor");
+
+    cursor = xcb_generate_id(c);
+    xcb_create_glyph_cursor(c, cursor, cursorFont, cursorFont,
+            XC_crosshair, XC_crosshair + 1, 0, 0, 0, 0xffff, 0xffff, 0xffff);
+
+    auto cookie = xcb_grab_pointer(c, false, root,
+            XCB_EVENT_MASK_BUTTON_RELEASE,
+            XCB_GRAB_MODE_ASYNC, XCB_GRAB_MODE_ASYNC,
+            XCB_WINDOW_NONE, cursor, XCB_CURRENT_TIME);
+    auto reply = xcb_grab_pointer_reply(c, cookie, NULL);
+
+    uint32_t w = 0;
+
+    if(reply) {
+        xcb_generic_event_t * e;
+        xcb_button_press_event_t * e_;
+
+        while(1) {
+            e = xcb_wait_for_event(c);
+            if(e && (e->response_type & ~0x80) == XCB_BUTTON_RELEASE) {
+                e_ = (xcb_button_press_event_t*)e;
+                w = e_->child;
+                break;
+            }
+        }
+
+        delete reply;
+        xcb_ungrab_pointer(c, XCB_CURRENT_TIME);
+    }
+    else
+        throw runtime_error("Can't grab pointer");
+
+    xcb_free_cursor(c, cursor);
+    xcb_close_font(c, cursorFont);
+    return w;
+}
+
+
+//------------------------------------------------------------------------------
+ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w, bool pick) {
     xcb_connection_t* c = 0;
     xcb_screen_t* s = 0;
     xcb_image_t* xi = 0;
@@ -44,6 +95,7 @@ ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w) {
             throw runtime_error("cannot get $DISPLAY. Is X started?");
 
         c = xcb_connect(dn, &screenN);
+        m->c = c;
         if(!c)
             throw "cannot connect to X";
 
@@ -57,6 +109,10 @@ ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w) {
 
         if(!s)
             throw runtime_error("cannot get screen information");
+
+
+        if(pick)
+            w = m->pick(s->root);
 
         if(!w) {
             w = s->root;
@@ -129,7 +185,6 @@ ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w) {
         im.size = im.bpl * im.height;
 
         // m
-        m->c = c;
         m->w = w;
         m->xi = xi;
         m->im = im;

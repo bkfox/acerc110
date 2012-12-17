@@ -17,7 +17,7 @@ void Transformer::append(Transformer* t) {
 
 
 Scale::Scale (uint32_t w, uint32_t h) :
-    outW(w), outH(h) {
+    outW{w}, outH{h} {
     buffer = new unsigned char[w*h*4];
 }
 
