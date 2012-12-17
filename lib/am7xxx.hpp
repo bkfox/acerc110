@@ -18,13 +18,22 @@ namespace am7x01 {
         LOW     = 1,
         MID     = 2,
         HIGH    = 3,
+        TURBO   = 4,
+    };
+
+
+    enum Zoom {
+        NONE        = 0,
+        HORIZONTAL  = 1,
+        BOTH        = 2,
+        TEST        = 4,
     };
 
     enum PacketType {
         INIT    = 1,
         IMAGE   = 2,
         POWER   = 4,
-        UNKNOWN = 5,
+        ZOOM    = 5,
     };
 
 
@@ -41,6 +50,11 @@ namespace am7x01 {
         uint32_t high;
     };
 
+    struct zoomHeader {
+        uint32_t low;
+        uint32_t mid;
+    };
+
     struct dataHeader {
         uint32_t    type;
         uint8_t     unknown0;
@@ -51,6 +65,7 @@ namespace am7x01 {
         union {
             imageHeader image;
             powerHeader power;
+            zoomHeader  zoom;
         } sub;
 
         dataHeader (uint32_t t, uint8_t l = 0, uint8_t u0 = 0, uint8_t u1 = 0, uint8_t u2 = 0) :

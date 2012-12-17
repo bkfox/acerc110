@@ -26,12 +26,13 @@ struct Projector {
          *  if scale = true, height and width will be the dimension to be scaled to
          *  otherwise, it is the size of the source
          */
-        Projector (const Power power = HIGH, Transformer* t = NULL);
+        Projector (const Power power = HIGH, const Zoom zoom = BOTH, Transformer* t = NULL);
 
         ~Projector ();
 
         void update ();
         void setPower (const Power);
+        void setZoom (const Zoom zoom);
 
         /*  Projector doesn't free IScreenshot after use */
         void assign (IScreenshot *);

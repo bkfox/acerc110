@@ -10,7 +10,7 @@
 namespace am7x01 {
 using namespace std;
 
-Projector::Projector (const Power power, Transformer *t):
+Projector::Projector (const Power power, const Zoom zoom, Transformer *t):
     transformer(t),
     buffer(0), bufferSize(0), dev(0), shooter(0),
     header(htole32(IMAGE), sizeof(imageHeader), 0, 0x3e, 0x10) {
@@ -36,6 +36,7 @@ Projector::Projector (const Power power, Transformer *t):
     send(&h, sizeof(h));
 
     setPower(power);
+    setZoom(zoom);
 }
 
 
@@ -59,16 +60,30 @@ void Projector::assign (IScreenshot *s) {
 }
 
 
+void Projector::setZoom (const Zoom zoom) {
+    static dataHeader data(htole32(ZOOM), sizeof(zoomHeader), 0, 0x3e, 0x10);
+
+    switch(zoom) {
+        case NONE:          data.sub.zoom = {0, 0}; break;
+        case BOTH:          data.sub.zoom = {1, 0}; break;
+        case HORIZONTAL:    data.sub.zoom = {0, 1}; break;
+        case TEST:          data.sub.zoom = {1, 1}; break;
+    }
+
+    send(&data, sizeof(data));
+}
+
+
 void Projector::setPower (const Power power) {
     static dataHeader data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
 
-/*    data.sub.power.low = 0;
-    data.sub.power.mid = (power & LOW) ? 1 : 0;
-    data.sub.power.high = (power & MID) ? 1 : 0; */
-
-    data.sub.power.low = 1;
-    data.sub.power.mid = 0;
-    data.sub.power.high =  0;
+    switch(power) {
+        case OFF:   data.sub.power = { 0, 0, 0 };   break;
+        case LOW:   data.sub.power = { 0, 0, 1 };   break;
+        case MID:   data.sub.power = { 0, 1, 0 };   break;
+        case HIGH:  data.sub.power = { 0, 1, 1 };   break;
+        case TURBO: data.sub.power = { 1, 0, 0 };   break;
+    }
 
     send(&data, sizeof(data));
 }
@@ -89,45 +104,10 @@ void Projector::update () {
     if(transformer)
         img = transformer->transform(img);
 
-//#define YUV
-#ifdef YUV
-    {
-        header.sub.image.size = htole32((double) (img.height * img.width * 12/8));
-
-        if(header.sub.image.size > bufferSize) {
-            if(buffer)
-                delete[] buffer;
-            buffer = new unsigned char[header.sub.image.size];
-            bufferSize = header.sub.image.size;
-            header.sub.image.format = htole32(0x02);
-        }
-
-        unsigned char *yPos = buffer,
-                      *uvPos = buffer + (img.width * img.height),
-                      *src = img.data;
-
-        for (int i = 0; i < img.height; i++)
-            for (int j = 0; j < img.width; j++) {
-                #define B   *(src)
-                #define G   *(src+1)
-                #define R   *(src+2)
-
-                *yPos = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
-
-                yPos++;
-                if(j%2==0 & i%2==0) {
-                    *uvPos =     ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
-                    *(uvPos+1) = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
-                    uvPos += 2;
-                }
-            }
-    }
-#else
     header.sub.image.format = 0x01;
     header.sub.image.size = htole32(compress(img));
     if(header.sub.image.size > AM7X01_MAX_SIZE)
         throw runtime_error("JPEG file size is too big");
-#endif
 
     send(&header, sizeof(header));
     send(buffer, header.sub.image.size);

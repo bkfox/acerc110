@@ -1,8 +1,5 @@
 #include "transform.hpp"
 
-#include <iostream>
-#define BKP std::cout << __LINE__ << " in " << __FILE__ << std::endl;
-
 namespace am7x01 {
 
 Transformer::Transformer () : next(0) {
@@ -36,7 +33,7 @@ Scale::~Scale () {
  *      little → big : not tested yet
  */
 Image Scale::transform (const Image& src) {
-    if(src.width == outW || src.height == outH)
+    if(src.width == outW && src.height == outH)
         return transformer_next(src);
 
     // working var

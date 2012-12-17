@@ -20,16 +20,18 @@ using namespace am7x01;
 namespace po = boost::program_options;
 
 int main (int argc, char ** argv) {
-    int panW{0}, panH{0}, power{3};
+    int panW{0}, panH{0}, power{3}, zoom{2};
     uint32_t wID{0}, framerate{0};
 
     po::options_description desc("General options");
     desc.add_options()
         ("help", "help message")
         ("bench", "show fps")
+        ("test", "show test picture")
         ("width", po::value<int>(&panW), "panning width (default: 0). If -1, use projector capabilities, 0 use the window/screen width")
         ("height", po::value<int>(&panH), "panning height (default: 0). If -1, use projector capabilities, 0 use the window/screen height")
-        ("power", po::value<int>(&power), "projector power (between 1, 2 or 3)")
+        ("power", po::value<int>(&power), "projector power (between 1 to 4)")
+//        ("zoom", po::value<int>(&zoom), "zoom mode if projector must rescale image. 0: no, 1: horizontal, 2: horizontal and vertical (default)")
         ("window", po::value<uint32_t>(&wID), "window ID to project")
         ("framerate", po::value<uint32_t>(&framerate), "try to limit at a maximal framerate (default: not limited).")
         ;
@@ -45,18 +47,24 @@ int main (int argc, char ** argv) {
     }
 
     // power
-    if(power > 3) power = 3;
-    else if(power < 1) power = 1;
+    if(power > 4)       power = 4;
+    else if(power < 1)  power = 1;
+
+
+    // zoom
+    if(vm.count("test"))
+        zoom = 4;
+    else if(zoom < 0)   zoom = 0;
+    else if(zoom > 2)   zoom = 2;
 
     // framerate
     __useconds_t us{0};
     if(framerate)
         us = 1000000 / framerate;
 
-    cout << panW << endl;
     // prepare main objects
     Scale scale(PROJECTOR_WIDTH, PROJECTOR_HEIGHT);
-    Projector proj((Power)power, &scale);
+    Projector proj((Power)power, (Zoom)zoom, &scale);
     ScreenshotXShm scr(panW, panH, wID);
 
     // lets' go
