@@ -1,4 +1,4 @@
-This project is a daemon to run an acer c110 pico-projector. Once compiled, you just need to run the c110d program. To know all options:
+This project is a daemon to run an acer c110 pico-projector on gnu/Linux (should run on other UNIX-like systems). Once compiled, you just need to run the c110d program. To know all options:
 
 	c110d --help
 
