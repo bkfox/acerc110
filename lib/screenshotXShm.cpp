@@ -48,42 +48,44 @@ ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w) {
             throw "cannot connect to X";
 
         auto setup = xcb_get_setup(c);
-        //if(!w) {
-            auto it = xcb_setup_roots_iterator(setup);
-            for(; it.rem; --screenN, xcb_screen_next(&it))
-                if(!screenN) {
-                    s = it.data;
-                    break;
-                }
+        auto it = xcb_setup_roots_iterator(setup);
+        for(; it.rem; --screenN, xcb_screen_next(&it))
+            if(!screenN) {
+                s = it.data;
+                break;
+            }
 
-            if(!s)
-                throw runtime_error("cannot get screen information");
+        if(!s)
+            throw runtime_error("cannot get screen information");
+
+        if(!w) {
             w = s->root;
-        //}
-        pW = s->width_in_pixels;
-        pH = s->height_in_pixels;
+            pW = s->width_in_pixels;
+            pH = s->height_in_pixels;
+        }
+        else {
+            xcb_generic_error_t *e;
 
-        /*auto ck = xcb_get_geometry(c, w);
-        geomR = xcb_get_geometry_reply(c, ck, NULL);
+            auto ck = xcb_get_geometry(c, w);
+            geomR = xcb_get_geometry_reply(c, ck, &e);
 
-        if(!geomR)
-            throw runtime_error("cannot retrieve window information");
+            if(!geomR)
+                throw runtime_error("cannot retrieve window information");
 
-        // check panning values
-        if(!pW || pW > s->width_in_pixels)
-            pW = geomR->width;
-        else if(pW < 0)
-            pW = PROJECTOR_WIDTH;
+            // check panning values
+            if(!pW || pW > s->width_in_pixels)
+                pW = geomR->width;
+            else if(pW < 0)
+                pW = PROJECTOR_WIDTH;
 
-        if(!pH || pH > s->height_in_pixels)
-            pH = geomR->height;
-        else if(pH < 0)
-            pH = PROJECTOR_HEIGHT;
+            if(!pH || pH > s->height_in_pixels)
+                pH = geomR->height;
+            else if(pH < 0)
+                pH = PROJECTOR_HEIGHT;
 
-        free(geomR);
-        geomR = 0;*/
-
-
+            free(geomR);
+            geomR = 0;
+        }
 
         //cf http://svn.enlightenment.org/svn/e/tags/ecore-1.1.0/src/lib/ecore_x/xcb/ecore_xcb_image.c
         // ximage
