@@ -1,13 +1,19 @@
-To be able to use the projector, you need to run usb\_modeswitch (you can use
-modeswitch script that does that)
+This project is a daemon to run an acer c110 pico-projector. Once compiled, you just need to run the c110d program. To know all options:
+
+	c110d --help
+
+You can give a window id, pan the resulting size, select a frame rate (to avoid CPU overload), show benchmark...
+
+
+Compilation and installation
+============================
+You need jam, libusb, and libjpeg-turbo to compile the daemon and the library.
+
+To be able to use the projector, you need to run usb\_modeswitch:
 
 	usb_modeswitch --default-vendor 0x1de1 --default-product 0x1101 \
 	--target-vendor 0x1de1 --target-product c101 --message-endpoint 0x01 \
 	-M 555342430890d8f90000000000000cff020000000000000000000000000000
-
-There is also the missing FindLIBUSB module for cmake that is not especially
-included in most distribution. You have to copy it to /usr/share/cmake-2.8/Modules
-
 
 Also take a look there too
 ==========================
