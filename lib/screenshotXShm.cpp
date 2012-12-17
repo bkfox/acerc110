@@ -60,8 +60,15 @@ ScreenshotXShm::ScreenshotXShm (int pW, int pH , uint32_t w) {
 
         if(!w) {
             w = s->root;
-            pW = s->width_in_pixels;
-            pH = s->height_in_pixels;
+
+            if(!pW || pW > s->width_in_pixels)
+                pW = s->width_in_pixels;
+            else if(pW < 0)
+                pW = PROJECTOR_WIDTH;
+            if(!pH || pH > s->height_in_pixels)
+                pH = s->height_in_pixels;
+            else if(pH < 0)
+                pH = PROJECTOR_HEIGHT;
         }
         else {
             xcb_generic_error_t *e;

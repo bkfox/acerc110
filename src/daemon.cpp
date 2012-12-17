@@ -31,7 +31,7 @@ int main (int argc, char ** argv) {
         ("height", po::value<int>(&panH), "panning height (default: 0). If -1, use projector capabilities, 0 use the window/screen height")
         ("power", po::value<int>(&power), "projector power (between 1, 2 or 3)")
         ("window", po::value<uint32_t>(&wID), "window ID to project")
-        ("framerate", po::value<uint32_t>(&framerate), "limit at a maximal framerate (default: not limited)")
+        ("framerate", po::value<uint32_t>(&framerate), "try to limit at a maximal framerate (default: not limited).")
         ;
 
     po::variables_map vm;
@@ -53,6 +53,7 @@ int main (int argc, char ** argv) {
     if(framerate)
         us = 1000000 / framerate;
 
+    cout << panW << endl;
     // prepare main objects
     Scale scale(PROJECTOR_WIDTH, PROJECTOR_HEIGHT);
     Projector proj((Power)power, &scale);
