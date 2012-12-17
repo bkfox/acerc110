@@ -14,8 +14,6 @@ void Transformer::append(Transformer* t) {
 
 
 //--------------------------------------------------------------------------
-
-
 Scale::Scale (uint32_t w, uint32_t h) :
     outW{w}, outH{h} {
     buffer = new unsigned char[w*h*4];
@@ -28,9 +26,7 @@ Scale::~Scale () {
 }
 
 
-/* Note:
- *      big → little : works correctly
- *      little → big : not tested yet
+/*  Use the Nearest Neighbour algorithm
  */
 Image Scale::transform (const Image& src) {
     if(src.width == outW && src.height == outH)
