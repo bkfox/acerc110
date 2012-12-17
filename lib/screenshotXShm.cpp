@@ -15,9 +15,12 @@ extern "C" {
     #include <xcb/xproto.h>
     #include <xcb/xcb_image.h>
     #include <xcb/shm.h>
-
-    #include <X11/cursorfont.h>
 }
+
+
+#ifndef XC_crosshair
+    #define XC_crosshair 34
+#endif
 
 
 namespace am7x01 {
