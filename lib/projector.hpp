@@ -66,8 +66,8 @@ struct Projector {
         dataHeader     header;
 
         void send(const void *buffer, const unsigned int len);
-#define DISABLE_JPEG
-#ifdef  DISABLE_JPEG
+
+#ifndef  C110_DISABLE_JPEG
         /*  The function suppose that src has been allocated following (width * height * bpp);
          *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
          */

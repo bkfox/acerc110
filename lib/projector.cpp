@@ -124,7 +124,7 @@ void Projector::update () {
     if(transformer)
         img = transformer->transform(img);
 
-#ifndef DISABLE_JPEG
+#ifndef C110_DISABLE_JPEG
     if(useJPEG) {
         header.sub.image.format = 0x01;
         header.sub.image.size = htole32(compress(img));
@@ -173,7 +173,7 @@ void Projector::update () {
     send(buffer, header.sub.image.size);
 }
 
-#ifndef DISABLE_JPEG
+#ifndef C110_DISABLE_JPEG
 uint64_t Projector::compress (const Image& src ) {
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
