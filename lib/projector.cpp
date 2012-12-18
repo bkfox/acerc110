@@ -29,7 +29,7 @@ using namespace std;
 Projector::Projector (const Power power, const Zoom zoom, Transformer *t):
     transformer(t),
     buffer(0), bufferSize(0), dev(0), shooter(0),
-    header(htole32(IMAGE), sizeof(imageHeader), 0, 0x3e, 0x10) {
+    header(htole32(IMAGE), sizeof(imageHeader), 0) {
 
     // usb
     libusb_init(NULL);
@@ -77,9 +77,8 @@ void Projector::assign (IScreenshot *s) {
 
 
 void Projector::setZoom (const Zoom zoom) {
-    static dataHeader data(htole32(ZOOM), sizeof(zoomHeader), 0, 0x3e, 0x10);
+    static dataHeader data(htole32(ZOOM), sizeof(zoomHeader), 0);
 
-    cout << "zoom " << zoom << endl;
     switch(zoom) {
         case NONE:          data.sub.zoom = {0, 0}; break;
         case HORIZONTAL:    data.sub.zoom = {0, 1}; break;
@@ -92,7 +91,7 @@ void Projector::setZoom (const Zoom zoom) {
 
 
 void Projector::setPower (const Power power) {
-    static dataHeader data(htole32(POWER), sizeof(powerHeader), 0, 0xff, 0xff);
+    static dataHeader data(htole32(POWER), sizeof(powerHeader), 0);
 
     switch(power) {
         case OFF:   data.sub.power = { 0, 0, 0 };   break;

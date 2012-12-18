@@ -73,10 +73,10 @@ namespace am7x01 {
 
     struct dataHeader {
         uint32_t    type;
-        uint8_t     unknown0;
+        uint8_t     direction;
         uint8_t     len;
-        uint8_t     unknown1;
-        uint8_t     unknown2;
+        uint8_t     padding1;
+        uint8_t     padding2;
 
         union {
             imageHeader image;
@@ -84,8 +84,8 @@ namespace am7x01 {
             zoomHeader  zoom;
         } sub;
 
-        dataHeader (uint32_t t, uint8_t l = 0, uint8_t u0 = 0, uint8_t u1 = 0, uint8_t u2 = 0) :
-            type(t), unknown0(u0), len(l), unknown1(u1), unknown2(u2) {
+        dataHeader (uint32_t t, uint8_t l = 0, uint8_t d = 0) :
+            type(t), direction(d), len(l) {
         }
     };
 }

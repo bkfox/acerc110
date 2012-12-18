@@ -32,6 +32,9 @@ namespace am7x01 {
 #define     PROJECTOR_WIDTH     800
 #define     PROJECTOR_HEIGHT    480
 
+//#define     PROJECTOR_WIDTH     1280
+//#define     PROJECTOR_HEIGHT    800
+
 /*
  *  For pointers, the rule is: allocator frees his allocations
  */
