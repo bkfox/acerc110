@@ -49,7 +49,7 @@ int main (int argc, char ** argv) {
         ("width", po::value<int>(&panW), "panning width (default: 0). If -1, use projector capabilities, 0 use the window/screen width")
         ("height", po::value<int>(&panH), "panning height (default: 0). If -1, use projector capabilities, 0 use the window/screen height")
         ("power", po::value<int>(&power), "projector power (between 1 to 4)")
-//        ("zoom", po::value<int>(&zoom), "zoom mode if projector must rescale image. 0: no, 1: horizontal, 2: horizontal and vertical (default)")
+        ("zoom", po::value<int>(&zoom), "zoom mode if projector must rescale image. 0: no, 1: horizontal, 2: horizontal and vertical (default)")
         ("window", po::value<uint32_t>(&wID), "window ID to project")
         ("framerate", po::value<uint32_t>(&framerate), "try to limit at a maximal framerate (default: not limited).")
         ;

@@ -14,7 +14,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-#ifndef TRANSFORM_HPP
 #include "am7xxx.hpp"
 #include "projector.hpp"
 
@@ -80,10 +79,11 @@ void Projector::assign (IScreenshot *s) {
 void Projector::setZoom (const Zoom zoom) {
     static dataHeader data(htole32(ZOOM), sizeof(zoomHeader), 0, 0x3e, 0x10);
 
+    cout << "zoom " << zoom << endl;
     switch(zoom) {
         case NONE:          data.sub.zoom = {0, 0}; break;
-        case BOTH:          data.sub.zoom = {1, 0}; break;
         case HORIZONTAL:    data.sub.zoom = {0, 1}; break;
+        case BOTH:          data.sub.zoom = {1, 0}; break;
         case TEST:          data.sub.zoom = {1, 1}; break;
     }
 
