@@ -17,14 +17,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #ifndef     PROJECTOR_HPP
 #define     PROJECTOR_HPP
 
-#include "screenshot.hpp"
-#include "transform.hpp"
-
 extern "C" {
     #include <libusb-1.0/libusb.h>
-    #include <jpeglib.h>
-    #include <jerror.h>
 }
+
+
+#include "screenshot.hpp"
+#include "transform.hpp"
 
 
 namespace am7x01 {
@@ -67,10 +66,12 @@ struct Projector {
 
         void send(const void *buffer, const unsigned int len);
 
+#ifdef USE_JPEG
         /*  The function suppose that src has been allocated following (width * height * bpp);
          *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
          */
         uint64_t compress (const Image&);
+#endif
 };
 
 }
