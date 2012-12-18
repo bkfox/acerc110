@@ -7,9 +7,16 @@ You can give a window id, pan the resulting size, select a frame rate (to avoid 
 
 Compilation and installation
 ============================
-You need jam, libusb, and libjpeg-turbo to compile the daemon and the library.
+You need jam, libusb, and libjpeg-turbo (if you want the JPEG support) to compile the daemon and the library.
 
-To be able to use the projector, you need to run usb\_modeswitch:
+To compile, run:
+
+	jam
+
+To compile without jpeg support, run:
+	jam disable_jpeg=1
+
+To be able to use the projector, you need to run usb\_modeswitch first:
 
 	usb_modeswitch --default-vendor 0x1de1 --default-product 0x1101 \
 	--target-vendor 0x1de1 --target-product c101 --message-endpoint 0x01 \

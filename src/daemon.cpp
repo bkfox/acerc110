@@ -51,7 +51,9 @@ int main (int argc, char ** argv) {
         ("height", po::value<int>(&panH), "panning height (default: 0). If -1, use projector capabilities, 0 use the window/screen height")
         ("zoom", po::value<int>(&zoom), "zoom mode if projector must rescale image. 0: no, 1: horizontal, 2: horizontal and vertical (default)")
         ("window", po::value<uint32_t>(&wID), "window ID to project")
+#ifndef C110_DISABLE_JPEG
         ("yuv", "Use YUV encoding instead of JPEG")
+#endif
         ;
 
     po::variables_map vm;
