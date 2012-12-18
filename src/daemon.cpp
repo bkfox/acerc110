@@ -38,20 +38,20 @@ namespace po = boost::program_options;
 int main (int argc, char ** argv) {
     int panW{0}, panH{0}, power{3}, zoom{2};
     uint32_t wID{0}, framerate{0};
-    bool pickWindow{false};
 
-    po::options_description desc("General options");
+    po::options_description desc("Program options");
     desc.add_options()
         ("help", "help message")
         ("bench", "show fps")
         ("test", "show test picture")
         ("pick", "select a window using mouse click")
+        ("power", po::value<int>(&power), "projector power (between 1 to 4)")
+        ("framerate", po::value<uint32_t>(&framerate), "try to limit at a maximal framerate (default: not limited).")
         ("width", po::value<int>(&panW), "panning width (default: 0). If -1, use projector capabilities, 0 use the window/screen width")
         ("height", po::value<int>(&panH), "panning height (default: 0). If -1, use projector capabilities, 0 use the window/screen height")
-        ("power", po::value<int>(&power), "projector power (between 1 to 4)")
         ("zoom", po::value<int>(&zoom), "zoom mode if projector must rescale image. 0: no, 1: horizontal, 2: horizontal and vertical (default)")
         ("window", po::value<uint32_t>(&wID), "window ID to project")
-        ("framerate", po::value<uint32_t>(&framerate), "try to limit at a maximal framerate (default: not limited).")
+        ("yuv", "Use YUV encoding instead of JPEG")
         ;
 
     po::variables_map vm;
@@ -82,7 +82,7 @@ int main (int argc, char ** argv) {
 
     // prepare main objects
     Scale scale(PROJECTOR_WIDTH, PROJECTOR_HEIGHT);
-    Projector proj((Power)power, (Zoom)zoom, &scale);
+    Projector proj((Power)power, (Zoom)zoom, &scale, !vm.count("yuv"));
     ScreenshotXShm scr(panW, panH, wID, vm.count("pick"));
 
     // lets' go

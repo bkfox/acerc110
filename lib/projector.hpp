@@ -44,7 +44,7 @@ struct Projector {
          *  if scale = true, height and width will be the dimension to be scaled to
          *  otherwise, it is the size of the source
          */
-        Projector (const Power power = HIGH, const Zoom zoom = BOTH, Transformer* t = NULL);
+        Projector (const Power power, const Zoom zoom, Transformer* t, bool);
 
         ~Projector ();
 
@@ -58,6 +58,7 @@ struct Projector {
     private:
         unsigned char* buffer;
         uint64_t       bufferSize;
+        bool           useJPEG;
 
         libusb_device_handle *dev;
         IScreenshot *shooter;
@@ -65,8 +66,8 @@ struct Projector {
         dataHeader     header;
 
         void send(const void *buffer, const unsigned int len);
-
-#ifdef USE_JPEG
+#define DISABLE_JPEG
+#ifdef  DISABLE_JPEG
         /*  The function suppose that src has been allocated following (width * height * bpp);
          *  compress doesn't free src and dst; src must be at 3 bytes per pixel in RGB.
          */

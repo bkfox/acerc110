@@ -21,21 +21,19 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 #include <stdexcept>
 
-#ifndef USE_JPEG
     extern "C" {
         #include <jpeglib.h>
         #include <jerror.h>
     }
-#endif
 
 
 namespace am7x01 {
 using namespace std;
 
-Projector::Projector (const Power power, const Zoom zoom, Transformer *t):
-    transformer(t),
-    buffer(0), bufferSize(0), dev(0), shooter(0),
-    header(htole32(IMAGE), sizeof(imageHeader), 0) {
+Projector::Projector (const Power power, const Zoom zoom, Transformer *t, bool ujpeg_):
+    transformer{t}, buffer{0}, bufferSize{0}, useJPEG{ujpeg_},
+    dev{0}, shooter{0},
+    header{htole32(IMAGE), sizeof(imageHeader)} {
 
     // usb
     libusb_init(NULL);
@@ -126,53 +124,56 @@ void Projector::update () {
     if(transformer)
         img = transformer->transform(img);
 
-#ifdef USE_JPEG
-    header.sub.image.format = 0x01;
-    header.sub.image.size = htole32(compress(img));
-    if(header.sub.image.size > AM7X01_MAX_SIZE)
-        throw runtime_error("JPEG file size is too big");
-#else
-
-    header.sub.image.size = htole32((double) (img.height * img.width * 12/8));
-
-    if(header.sub.image.size > bufferSize) {
-        if(buffer)
-            delete[] buffer;
-        buffer = new unsigned char[header.sub.image.size];
-        bufferSize = header.sub.image.size;
-        header.sub.image.format = htole32(0x02);
+#ifndef DISABLE_JPEG
+    if(useJPEG) {
+        header.sub.image.format = 0x01;
+        header.sub.image.size = htole32(compress(img));
+        if(header.sub.image.size > AM7X01_MAX_SIZE)
+            throw runtime_error("JPEG file size is too big");
     }
-
-    unsigned char   *yPos = buffer,
-                    *uvPos = buffer + (img.width * img.height),
-                    *src = img.data;
-
-    for (int i = 0; i < img.height; i++)
-        for (int j = 0; j < img.width; j++) {
-            #define B *(src)
-            #define G *(src+1)
-            #define R *(src+2)
-
-            *yPos = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
-
-            yPos++;
-            if(j%2==0 && i%2==0) {
-                *uvPos = ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
-                *(uvPos+1) = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
-                //*uvPos = 128;
-                //*(uvPos+1) = 234;
-                uvPos += 2;
-            }
-
-            src += 4;
-        }
+    else
 #endif
+    {
+        header.sub.image.size = htole32((double) (img.height * img.width * 12/8));
+
+        if(header.sub.image.size > bufferSize) {
+            if(buffer)
+                delete[] buffer;
+            buffer = new unsigned char[header.sub.image.size];
+            bufferSize = header.sub.image.size;
+            header.sub.image.format = htole32(0x02);
+        }
+
+        unsigned char   *yPos = buffer,
+                        *uvPos = buffer + (img.width * img.height),
+                        *src = img.data;
+
+        for (int i = 0; i < img.height; i++)
+            for (int j = 0; j < img.width; j++) {
+                #define B *(src)
+                #define G *(src+1)
+                #define R *(src+2)
+
+                *yPos = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
+
+                yPos++;
+                if(j%2==0 && i%2==0) {
+                    *uvPos = ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
+                    *(uvPos+1) = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
+                    //*uvPos = 128;
+                    //*(uvPos+1) = 234;
+                    uvPos += 2;
+                }
+
+                src += 4;
+            }
+    }
 
     send(&header, sizeof(header));
     send(buffer, header.sub.image.size);
 }
 
-#ifdef  USE_JPEG
+#ifndef DISABLE_JPEG
 uint64_t Projector::compress (const Image& src ) {
     struct jpeg_compress_struct cinfo;
     struct jpeg_error_mgr jerr;
@@ -210,6 +211,7 @@ uint64_t Projector::compress (const Image& src ) {
     return size;
 }
 #endif
+
 
 }
 
