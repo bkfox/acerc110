@@ -1,4 +1,4 @@
 
 LOCATE_TARGET = build ;
-Library libc110 : projector.cpp screenshotXShm.cpp transform.cpp ;
+Library libc110 : projector.cpp screenshotXShm.cpp ;
 
