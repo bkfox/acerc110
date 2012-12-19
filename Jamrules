@@ -1,4 +1,9 @@
-C++FLAGS = -std=c++11 -g ;
+C++FLAGS = -std=c++11 ;
+
+if $(debug)
+{
+    C++FLAGS += -g -pg ;
+}
 
 if $(disable_jpeg)
 {
