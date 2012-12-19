@@ -3,6 +3,8 @@ C++FLAGS = -std=c++11 ;
 if $(debug)
 {
     C++FLAGS += -g -pg ;
+    LINKFLAGS += -g -pg ;
+    DEFINES += C110_DEBUG ;
 }
 
 if $(disable_jpeg)
