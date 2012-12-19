@@ -23,7 +23,6 @@ extern "C" {
 
 
 #include "screenshot.hpp"
-#include "transform.hpp"
 
 
 namespace am7x01 {
@@ -38,13 +37,11 @@ namespace am7x01 {
  *  For pointers, the rule is: allocator frees his allocations
  */
 struct Projector {
-        Transformer *transformer;
-
         /*  For the whole screen set width and height OR window to 0
          *  if scale = true, height and width will be the dimension to be scaled to
          *  otherwise, it is the size of the source
          */
-        Projector (const Power power, const Zoom zoom, Transformer* t, bool);
+        Projector (const Power, const Zoom, bool, uint32_t, uint32_t);
 
         ~Projector ();
 
@@ -56,9 +53,11 @@ struct Projector {
         void assign (IScreenshot *);
 
     private:
+        bool           useJPEG;
         unsigned char* buffer;
         uint64_t       bufferSize;
-        bool           useJPEG;
+        uint32_t       panW,
+                       panH;
 
         libusb_device_handle *dev;
         IScreenshot *shooter;

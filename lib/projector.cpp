@@ -30,8 +30,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 namespace am7x01 {
 using namespace std;
 
-Projector::Projector (const Power power, const Zoom zoom, Transformer *t, bool ujpeg_):
-    transformer{t}, buffer{0}, bufferSize{0}, useJPEG{ujpeg_},
+Projector::Projector (const Power power, const Zoom zoom, bool uj, uint32_t pW, uint32_t pH):
+    buffer{0}, bufferSize{0}, useJPEG{uj},
     dev{0}, shooter{0},
     header{htole32(IMAGE), sizeof(imageHeader)} {
 
@@ -47,9 +47,25 @@ Projector::Projector (const Power power, const Zoom zoom, Transformer *t, bool u
     libusb_claim_interface(dev, 0);
 
     // header
-    header.sub.image.format = htole32(0x01);
-    header.sub.image.width =  htole32(PROJECTOR_WIDTH);
-    header.sub.image.height = htole32(PROJECTOR_HEIGHT);
+    header.sub.image.width =  htole32(pW);
+    header.sub.image.height = htole32(pH);
+
+    // init buffers if yuv
+#ifndef C110_DISABLE_JPEG
+    if(useJPEG) {
+        header.sub.image.format = htole32(0x01);
+        header.sub.image.size = pW * pH * 4;
+    }
+    else {
+#endif
+        header.sub.image.format = htole32(0x02);
+        header.sub.image.size = htole32((double) (pW * pH * 12/8));
+#ifndef C110_DISABLE_JPEG
+    }
+#endif
+
+    bufferSize = header.sub.image.size;
+    buffer = new unsigned char[bufferSize];
 
     // init device
     dataHeader h(INIT);
@@ -121,35 +137,67 @@ void Projector::send (const void *buffer, const unsigned int len) {
 void Projector::update () {
     Image img = shooter->update();
 
-    if(transformer)
-        img = transformer->transform(img);
+    int pW = header.sub.image.width,
+        pH = header.sub.image.height;
 
 #ifndef C110_DISABLE_JPEG
     if(useJPEG) {
+        double dx = (double) img.width / pW,
+               dy = (double) img.height / pH;
+        int y, x, v, line;
+        int table[pW];
+        unsigned char *offset = buffer;
+
+        for(x = 0; x < pW; x++)
+            table[x] = (int) ((double)dx * x) * img.channels;
+
+        for(y = 0; y < pH; y++) {
+            line = (int)((double)dy * y) * img.bpl;
+            for(x = 0; x < pW; x++) {
+                v = line + table[x];
+                *offset = img.data[v];
+                *(offset+1) = img.data[v+1];
+                *(offset+2) = img.data[v+2];
+                offset+=img.channels;
+            }
+        }
+
+        img.width = pW;
+        img.height = pH;
+        img.bpl = pW * img.channels;
+        img.size = pH * img.bpl;
+        img.data = buffer;
+
+
         header.sub.image.format = 0x01;
         header.sub.image.size = htole32(compress(img));
         if(header.sub.image.size > AM7X01_MAX_SIZE)
             throw runtime_error("JPEG file size is too big");
     }
-    else
+    else {
 #endif
-    {
-        header.sub.image.size = htole32((double) (img.height * img.width * 12/8));
-
-        if(header.sub.image.size > bufferSize) {
-            if(buffer)
-                delete[] buffer;
-            buffer = new unsigned char[header.sub.image.size];
-            bufferSize = header.sub.image.size;
-            header.sub.image.format = htole32(0x02);
-        }
+        /*
+         *  As we convert image from RGB to YUV, we resize it
+         */
+        int table[pW], v, line;
 
         unsigned char   *yPos = buffer,
-                        *uvPos = buffer + (img.width * img.height),
-                        *src = img.data;
+                        *uvPos = buffer + pW * pH,
+                        *src;
 
-        for (int i = 0; i < img.height; i++)
-            for (int j = 0; j < img.width; j++) {
+        double dx = (double) img.width / pW,
+               dy = (double) img.height / pH;
+
+        for(int x = 0; x < pW; x++)
+            table[x] = (int) ((double)dx * x) * img.channels;
+
+        for(int y = 0; y < pH; y++) {
+            line = (int)((double)dy * y) * img.bpl;
+
+            for(int x = 0; x < pW; x++) {
+                v = line + table[x];
+                src = &img.data[v];
+
                 #define B *(src)
                 #define G *(src+1)
                 #define R *(src+2)
@@ -157,17 +205,16 @@ void Projector::update () {
                 *yPos = ((66 * R + 129 * G + 25 * B + 128) >> 8) + 16;
 
                 yPos++;
-                if(j%2==0 && i%2==0) {
+                if(x%2==0 && y%2==0) {
                     *uvPos = ((-38 * R - 74 * G + 112 * B + 128) >> 8) + 128;
                     *(uvPos+1) = ((112 * R - 94 * G - 18 * B + 128) >> 8) + 128;
-                    //*uvPos = 128;
-                    //*(uvPos+1) = 234;
                     uvPos += 2;
                 }
-
-                src += 4;
             }
+        }
+#ifndef C110_DISABLE_JPEG
     }
+#endif
 
     send(&header, sizeof(header));
     send(buffer, header.sub.image.size);
