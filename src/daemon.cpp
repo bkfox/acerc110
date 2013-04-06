@@ -22,8 +22,8 @@ extern "C" {
     #include <unistd.h>
 }
 
-#include "../lib/projector.hpp"
-#include "../lib/screenshotXShm.hpp"
+#include "projector.hpp"
+#include "screenshotXShm.hpp"
 
 #ifndef  CLOCKS_PER_SEC
     #define CLOCKS_PER_SEC  1000000l
