@@ -83,8 +83,7 @@ int main (int argc, char ** argv) {
         us = 1000000 / framerate;
 
     // prepare main objects
-    Projector proj{(Power)power, (Zoom)zoom, !vm.count("yuv"),
-                    PROJECTOR_WIDTH, PROJECTOR_HEIGHT};
+    Projector proj{(Power)power, (Zoom)zoom, !vm.count("yuv")};
     ScreenshotXShm scr{panW, panH, wID, vm.count("pick")};
 
     // lets' go

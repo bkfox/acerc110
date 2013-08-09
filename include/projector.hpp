@@ -38,10 +38,9 @@ namespace am7x01 {
  */
 struct Projector {
         /*  For the whole screen set width and height OR window to 0
-         *  if scale = true, height and width will be the dimension to be scaled to
-         *  otherwise, it is the size of the source
+         *  if scale = true
          */
-        Projector (const Power, const Zoom, bool, uint32_t, uint32_t);
+        Projector (const Power, const Zoom, bool);
 
         ~Projector ();
 

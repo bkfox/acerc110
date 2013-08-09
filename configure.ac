@@ -12,29 +12,42 @@ PKG_CHECK_MODULES([DEPS], [
 
 AC_CONFIG_FILES([
     Makefile
+    src/Makefile
 ])
 
 
 
+USED_LIBS=""
+USED_FLAGS=""
+
+AC_ARG_ENABLE(debug,
+    AS_HELP_STRING([--enable-debug],
+                   [enable debugging, default: no]),
+    [case "${enableval}" in
+                 yes) USED_FLAGS="-g3 -pg -O0";;
+                 no)  USED_FLAGS="-O2";;
+                 *)   AC_MSG_ERROR([bad value ${enableval} for --enable-debug]) ;;
+    esac],
+    [debug=no]
+)
+
 AC_ARG_WITH([boost-lib-path],
     [AS_HELP_STRING([--with-boost-lib-path], [location of the Boost library])],
-    [BOOST_LIBS="-L$withval -lboost_program_options"],
-    [BOOST_LIBS='-lboost_program_options'])
-AC_SUBST([BOOST_LIBS])
+    [USED_LIBS+='-L$withval -lboost_program_options '],
+    [USED_LIBS+='-lboost_program_options '])
 
 
 AC_ARG_ENABLE([yuv-encoding-only],
     [AS_HELP_STRING([--enable-yuv-encoding-only], [support only YUV encoding])],
     [
-        JPEG_LIBS="-ljpeg"
-        JPEG_FLAGS="-DC110_DISABLE_JPEG"
+        USED_FLAGS+="-DC110_DISABLE_JPEG "
     ], [
-        JPEG_LIBS=""
-        JPEG_FLAGS=""
+        USED_LIBS+="-ljpeg "
     ]
 )
-AC_SUBST([JPEG_LIBS])
-AC_SUBST([JPEG_FLAGS])
+
+AC_SUBST([USED_LIBS])
+AC_SUBST([USED_FLAGS])
 
 
 

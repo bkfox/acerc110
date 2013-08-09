@@ -21,16 +21,31 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #include <time.h>
 #include <stdexcept>
 
-    extern "C" {
-        #include <jpeglib.h>
-        #include <jerror.h>
-    }
+
+extern "C" {
+    #include <emmintrin.h>
+    #include <jpeglib.h>
+    #include <jerror.h>
+}
+
+
+// from http://stackoverflow.com/questions/10500766/sse-multiplication-of-4-32-bit-integers
+static inline __m128i muly(const __m128i &a, const __m128i &b)
+{
+#ifdef __SSE4_1__
+    return _mm_mullo_epi32(a, b);
+#else
+    __m128i tmp1 = _mm_mul_epu32(a,b);
+    __m128i tmp2 = _mm_mul_epu32( _mm_srli_si128(a,4), _mm_srli_si128(b,4));
+    return _mm_unpacklo_epi32(_mm_shuffle_epi32(tmp1, _MM_SHUFFLE (0,0,2,0)), _mm_shuffle_epi32(tmp2, _MM_SHUFFLE (0,0,2,0))); /* shuffle results to [63..0] and pack */
+#endif
+}
 
 
 namespace am7x01 {
 using namespace std;
 
-Projector::Projector (const Power power, const Zoom zoom, bool uj, uint32_t pW, uint32_t pH):
+Projector::Projector (const Power power, const Zoom zoom, bool uj):
     buffer{0}, bufferSize{0}, useJPEG{uj},
     dev{0}, shooter{0},
     header{htole32(IMAGE), sizeof(imageHeader)} {
@@ -47,19 +62,19 @@ Projector::Projector (const Power power, const Zoom zoom, bool uj, uint32_t pW, 
     libusb_claim_interface(dev, 0);
 
     // header
-    header.sub.image.width =  htole32(pW);
-    header.sub.image.height = htole32(pH);
+    header.sub.image.width =  htole32(PROJECTOR_WIDTH);
+    header.sub.image.height = htole32(PROJECTOR_HEIGHT);
 
     // init buffers if yuv
 #ifndef C110_DISABLE_JPEG
     if(useJPEG) {
         header.sub.image.format = htole32(0x01);
-        header.sub.image.size = pW * pH * 4;
+        header.sub.image.size = PROJECTOR_WIDTH * PROJECTOR_HEIGHT * 4;
     }
     else {
 #endif
         header.sub.image.format = htole32(0x02);
-        header.sub.image.size = htole32((double) (pW * pH * 12/8));
+        header.sub.image.size = htole32((double) (PROJECTOR_WIDTH * PROJECTOR_HEIGHT * 12/8));
 #ifndef C110_DISABLE_JPEG
     }
 #endif
@@ -78,8 +93,8 @@ Projector::Projector (const Power power, const Zoom zoom, bool uj, uint32_t pW, 
 
 Projector::~Projector () {
     if(dev) {
-        setPower(OFF);      //first, shutdown the projector
-        libusb_close(dev);  //then close the device
+        setPower(OFF);
+        libusb_close(dev);
     }
 
     if(buffer)
@@ -137,35 +152,50 @@ void Projector::send (const void *buffer, const unsigned int len) {
 void Projector::update () {
     Image img = shooter->update();
 
-    int pW = header.sub.image.width,
-        pH = header.sub.image.height;
-
 #ifndef C110_DISABLE_JPEG
     if(useJPEG) {
-        double dx = (double) img.width / pW,
-               dy = (double) img.height / pH;
-        int y, x, v, line;
-        int table[pW];
+        __m128i table[PROJECTOR_WIDTH/4];
+
+        auto tm = ((double) img.width / PROJECTOR_WIDTH);
+
+        int y, x;
+        for(x = 0, y=0; x < PROJECTOR_WIDTH / 4; x++, y+=4) {
+            table[x] = _mm_set_epi32((int)((double)(y+3) * tm) * img.channels,
+                                     (int)((double)(y+2) * tm) * img.channels,
+                                     (int)((double)(y+1) * tm) * img.channels,
+                                     (int)((double)y * tm)     * img.channels);
+        }
+        //    table[x] = muly(tm, _mm_set_epi32(y+3, y+2, y+1, y+0));
+
         unsigned char *offset = buffer;
+        double dy = (double) img.height / PROJECTOR_HEIGHT;
 
-        for(x = 0; x < pW; x++)
-            table[x] = (int) ((double)dx * x) * img.channels;
+        __m128i line;
+        union {
+            __m128i v;
+            int     v_[4];
+        };
 
-        for(y = 0; y < pH; y++) {
-            line = (int)((double)dy * y) * img.bpl;
-            for(x = 0; x < pW; x++) {
-                v = line + table[x];
-                *offset = img.data[v];
-                *(offset+1) = img.data[v+1];
-                *(offset+2) = img.data[v+2];
-                offset+=img.channels;
+        for(y = 0; y < PROJECTOR_HEIGHT; y++) {
+            line = _mm_set1_epi32((int)((double)dy * y) * img.bpl);
+
+            for(x = 0; x < PROJECTOR_WIDTH / 4; x++) {
+                v = _mm_add_epi32(table[x], line);
+
+                for(int i = 0; i < 4; i++) {
+                    offset[0] = img.data[v_[i]];
+                    offset[1] = img.data[v_[i]+1];
+                    offset[2] = img.data[v_[i]+2];
+                    offset+=img.channels;
+                }
             }
         }
 
-        img.width = pW;
-        img.height = pH;
-        img.bpl = pW * img.channels;
-        img.size = pH * img.bpl;
+
+        img.width = PROJECTOR_WIDTH;
+        img.height = PROJECTOR_HEIGHT;
+        img.bpl = PROJECTOR_WIDTH * img.channels;
+        img.size = PROJECTOR_HEIGHT * img.bpl;
         img.data = buffer;
 
 
@@ -179,22 +209,22 @@ void Projector::update () {
         /*
          *  As we convert image from RGB to YUV, we resize it
          */
-        int table[pW], v, line;
+        int table[PROJECTOR_WIDTH], v, line;
 
         unsigned char   *yPos = buffer,
-                        *uvPos = buffer + pW * pH,
+                        *uvPos = buffer + PROJECTOR_WIDTH * PROJECTOR_HEIGHT,
                         *src;
 
-        double dx = (double) img.width / pW,
-               dy = (double) img.height / pH;
+        double dx = (double) img.width / PROJECTOR_WIDTH,
+               dy = (double) img.height / PROJECTOR_HEIGHT;
 
-        for(int x = 0; x < pW; x++)
+        for(int x = 0; x < PROJECTOR_WIDTH; x++)
             table[x] = (int) ((double)dx * x) * img.channels;
 
-        for(int y = 0; y < pH; y++) {
+        for(int y = 0; y < PROJECTOR_HEIGHT; y++) {
             line = (int)((double)dy * y) * img.bpl;
 
-            for(int x = 0; x < pW; x++) {
+            for(int x = 0; x < PROJECTOR_WIDTH; x++) {
                 v = line + table[x];
                 src = &img.data[v];
 
