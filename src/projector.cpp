@@ -29,19 +29,6 @@ extern "C" {
 }
 
 
-// from http://stackoverflow.com/questions/10500766/sse-multiplication-of-4-32-bit-integers
-static inline __m128i muly(const __m128i &a, const __m128i &b)
-{
-#ifdef __SSE4_1__
-    return _mm_mullo_epi32(a, b);
-#else
-    __m128i tmp1 = _mm_mul_epu32(a,b);
-    __m128i tmp2 = _mm_mul_epu32( _mm_srli_si128(a,4), _mm_srli_si128(b,4));
-    return _mm_unpacklo_epi32(_mm_shuffle_epi32(tmp1, _MM_SHUFFLE (0,0,2,0)), _mm_shuffle_epi32(tmp2, _MM_SHUFFLE (0,0,2,0))); /* shuffle results to [63..0] and pack */
-#endif
-}
-
-
 namespace am7x01 {
 using namespace std;
 
@@ -165,7 +152,6 @@ void Projector::update () {
                                      (int)((double)(y+1) * tm) * img.channels,
                                      (int)((double)y * tm)     * img.channels);
         }
-        //    table[x] = muly(tm, _mm_set_epi32(y+3, y+2, y+1, y+0));
 
         unsigned char *offset = buffer;
         double dy = (double) img.height / PROJECTOR_HEIGHT;
