@@ -177,13 +177,11 @@ void Projector::update () {
             }
         }
 
-
         img.width = PROJECTOR_WIDTH;
         img.height = PROJECTOR_HEIGHT;
         img.bpl = PROJECTOR_WIDTH * img.channels;
         img.size = PROJECTOR_HEIGHT * img.bpl;
         img.data = buffer;
-
 
         header.sub.image.format = 0x01;
         header.sub.image.size = htole32(compress(img));

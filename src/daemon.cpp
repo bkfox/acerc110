@@ -94,12 +94,7 @@ int main (int argc, char ** argv) {
         #define N   50
         int frame = 0, u, s;
         double d;
-#ifdef C110_DEBUG
-        int c_ = 10;
-        while(c_--)
-#else
         while(1)
-#endif
         {
             gettimeofday(&t[0], NULL);
             frame = N;
@@ -122,18 +117,12 @@ int main (int argc, char ** argv) {
             cout << "~duration: " << d << " ms\t\tfps: " <<  1000.0 / d << endl;
         }
     }
-    else {
-#ifdef C110_DEBUG
-        int c_ = 10 * N;
-        while(c_--)
-#else
+    else
         while(1)
-#endif
         {
             proj.update();
             usleep(us);
         }
-    }
 
     return 0;
 }
